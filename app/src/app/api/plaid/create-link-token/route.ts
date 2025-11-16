@@ -13,7 +13,7 @@ type CreateLinkTokenBody = {
 function parseProducts(): Products[] {
     const fromEnv = process.env.NEXT_PUBLIC_PLAID_PRODUCTS;
     if (!fromEnv) {
-        return ['transactions'];
+        return ["transactions"];
     }
 
     return fromEnv

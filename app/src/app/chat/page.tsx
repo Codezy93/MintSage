@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
-import { Sparkles, Send, ArrowLeft, Loader2 } from 'lucide-react'
+import { Sparkles, Send, ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 type Message = {
@@ -33,6 +33,7 @@ export default function ChatPage() {
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -49,37 +50,72 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+  const sendMessage = async () => {
+    const trimmedInput = input.trim()
+    if (!trimmedInput || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: trimmedInput,
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    const updatedMessages = [...messages, userMessage]
+
+    setMessages(updatedMessages)
     setInput('')
     setIsLoading(true)
+    setError(null)
 
-    // Simulate AI response
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: updatedMessages.map(({ role, content }) => ({ role, content })),
+        }),
+      })
 
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: generateMockResponse(input),
-      timestamp: new Date(),
+      const data = (await response.json().catch(() => ({}))) as {
+        reply?: string
+        error?: string
+      }
+
+      if (!response.ok || typeof data.reply !== 'string') {
+        throw new Error(data.error || 'Unable to get a response from SpendSage AI right now.')
+      }
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.reply.trim(),
+        timestamp: new Date(),
+      }
+
+      setMessages((prev) => [...prev, aiMessage])
+    } catch (err) {
+      console.error('Chat request failed', err)
+      const errorMessage =
+        err instanceof Error ? err.message : 'Something went wrong. Please try again later.'
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    setMessages((prev) => [...prev, aiMessage])
-    setIsLoading(false)
+  const handleSubmit = async (
+    e?: React.FormEvent<HTMLFormElement> | React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    e?.preventDefault()
+    await sendMessage()
   }
 
   const handleSuggestedQuestion = (question: string) => {
     setInput(question)
+    setError(null)
     textareaRef.current?.focus()
   }
 
@@ -186,11 +222,22 @@ export default function ChatPage() {
       {/* Input Area */}
       <div className="sticky bottom-0 border-t border-emerald-200/50 dark:border-emerald-800/50 bg-white/70 dark:bg-background/70 backdrop-blur-md">
         <div className="container mx-auto px-4 py-4 max-w-4xl">
+          {error && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="flex gap-3">
             <Textarea
               ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value)
+                if (error) {
+                  setError(null)
+                }
+              }}
               placeholder="Ask me anything about your finances..."
               className="min-h-[60px] max-h-[120px] resize-none bg-white dark:bg-background"
               onKeyDown={(e) => {
@@ -215,74 +262,4 @@ export default function ChatPage() {
   )
 }
 
-// Mock AI response generator
-function generateMockResponse(input: string): string {
-  const lowerInput = input.toLowerCase()
 
-  if (lowerInput.includes('dining') || lowerInput.includes('restaurant')) {
-    return `Based on your spending patterns, I've noticed you spend about $450/month on dining out. Here are some personalized tips to reduce this:
-
-1. Meal Prep Sundays: Cooking meals in bulk can save you $200-300/month
-2. Set a dining budget: Try limiting dining out to 2-3 times per week
-3. Use dining rewards: Your credit card offers 3% back on dining
-4. Pack lunch 3x per week: This alone could save you ~$120/month
-
-Would you like me to create a specific action plan or track your progress?`
-  }
-
-  if (lowerInput.includes('budget') || lowerInput.includes('plan')) {
-    return `I've analyzed your spending patterns and created a recommended budget for next month:
-
-🏠 Housing: $1,200 (35%)
-🍔 Food & Dining: $600 (18%)
-🚗 Transportation: $400 (12%)
-🎬 Entertainment: $200 (6%)
-💰 Savings: $800 (24%)
-📱 Other: $200 (6%)
-
-Total Monthly Budget: $3,400
-
-This plan allocates 24% to savings, which is above the recommended 20%. You're doing great! Would you like me to adjust any categories?`
-  }
-
-  if (lowerInput.includes('spending') || lowerInput.includes('categories')) {
-    return `Here's your spending breakdown for the last 30 days:
-
-1. Dining & Food: $450 (32%)
-2. Shopping: $285 (20%)
-3. Transportation: $210 (15%)
-4. Entertainment: $180 (13%)
-5. Health & Wellness: $140 (10%)
-6. Other: $135 (10%)
-
-Your biggest opportunity for savings is in Dining & Food. You're spending 32% of your budget here, while the average is 15-20%. Would you like specific tips to reduce this?`
-  }
-
-  if (lowerInput.includes('compare') || lowerInput.includes('last month')) {
-    return `Let me compare your spending to last month:
-
-📊 Total Spending:
-This month: $2,845 (-8.2%)
-Last month: $3,100
-
-✅ Improvements:
-• Dining: $450 (down from $520) - Great job!
-• Entertainment: $180 (down from $240)
-
-⚠️ Increases:
-• Shopping: $285 (up from $180)
-• Transportation: $210 (up from $190)
-
-Overall, you're trending in the right direction! Your disciplined approach to dining has really paid off. Keep it up!`
-  }
-
-  return `I'd be happy to help you with that! I can provide insights on:
-
-• Your spending patterns and trends
-• Personalized savings recommendations
-• Budget planning and optimization
-• Financial forecasting
-• Category-specific advice
-
-Could you provide more details about what specific aspect of your finances you'd like to explore?`
-}
