@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import getTransactions  from '@/lib/transactions/transactions'
 
 export default async function DashboardPage() {
-  const transactions = await getTransactions();
+  const { transactions } = await getTransactions()
 
   return (
     <div className="min-h-screen bg-linear-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950 dark:via-teal-950 dark:to-cyan-950">

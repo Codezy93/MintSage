@@ -3,7 +3,7 @@ import { AIMessage, HumanMessage } from '@langchain/core/messages'
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
 import { StringOutputParser } from '@langchain/core/output_parsers'
 
-import llm from '@/lib/groq/config'
+import { getGroqClient } from '@/lib/groq/config'
 
 type IncomingMessage = {
   role?: 'user' | 'assistant'
@@ -25,7 +25,19 @@ const prompt = ChatPromptTemplate.fromMessages([
   ['human', '{input}'],
 ])
 
-const chain = prompt.pipe(llm).pipe(new StringOutputParser())
+let cachedChain: ReturnType<typeof buildChain> | null = null
+
+function buildChain() {
+  const llm = getGroqClient()
+  return prompt.pipe(llm).pipe(new StringOutputParser())
+}
+
+function getChain() {
+  if (!cachedChain) {
+    cachedChain = buildChain()
+  }
+  return cachedChain
+}
 
 export async function POST(req: Request) {
   try {
@@ -69,6 +81,17 @@ export async function POST(req: Request) {
           ? new AIMessage(message.content)
           : new HumanMessage(message.content),
       )
+
+    let chain
+    try {
+      chain = getChain()
+    } catch (configError) {
+      console.error('Groq client is not configured', configError)
+      return NextResponse.json(
+        { error: 'SpendSage AI is not available. Please configure GROQ_API_KEY.' },
+        { status: 500 },
+      )
+    }
 
     const reply = await chain.invoke({
       history,
