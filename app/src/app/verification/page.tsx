@@ -26,7 +26,7 @@ export default function VerificationPage() {
             <Sparkles className="size-6 text-white" />
           </div>
           <span className="text-2xl font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            SpendSage
+            MintSage
           </span>
         </Link>
         <div className="bg-white/80 dark:bg-background/80 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-800/50 shadow-xl shadow-emerald-500/10 p-8">

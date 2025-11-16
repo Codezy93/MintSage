@@ -27,7 +27,7 @@ export default function ChatPage() {
     {
       id: '1',
       role: 'assistant',
-      content: "Hello! I'm SpendSage AI, your personal financial assistant. I can help you understand your spending patterns, create budgets, and provide personalized tips to save more money. How can I help you today?",
+      content: "Hello! I'm MintSage AI, your personal financial assistant. I can help you understand your spending patterns, create budgets, and provide personalized tips to save more money. How can I help you today?",
       timestamp: new Date(),
     },
   ])
@@ -85,7 +85,7 @@ export default function ChatPage() {
       }
 
       if (!response.ok || typeof data.reply !== 'string') {
-        throw new Error(data.error || 'Unable to get a response from SpendSage AI right now.')
+        throw new Error(data.error || 'Unable to get a response from MintSage AI right now.')
       }
 
       const aiMessage: Message = {
@@ -135,7 +135,7 @@ export default function ChatPage() {
                 <Sparkles className="size-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold">SpendSage AI</h1>
+                <h1 className="text-lg font-bold">MintSage AI</h1>
                 <p className="text-xs text-muted-foreground">Financial Assistant</p>
               </div>
             </div>
@@ -261,5 +261,6 @@ export default function ChatPage() {
     </div>
   )
 }
+
 
 

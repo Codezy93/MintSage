@@ -11,7 +11,7 @@ import { DM_Sans as V0_Font_DM_Sans, Space_Mono as V0_Font_Space_Mono, Source_Se
 const _spaceMono = V0_Font_Space_Mono({ subsets: ['latin'], weight: ["400","700"] })
 
 export const metadata: Metadata = {
-  title: 'SpendSage - AI-Powered Personal Finance',
+  title: 'MintSage - AI-Powered Personal Finance',
   description: 'Track, save, and optimize your finances with AI-powered insights and forecasting',
   icons: {
     icon: [
@@ -46,3 +46,4 @@ export default function RootLayout({
     </html>
   )
 }
+

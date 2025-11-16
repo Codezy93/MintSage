@@ -13,7 +13,7 @@ export default function LandingPage() {
               <Sparkles className="size-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              SpendSage
+              MintSage
             </span>
           </div>
           <nav className="flex items-center gap-6">
@@ -44,7 +44,7 @@ export default function LandingPage() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed text-pretty animate-fade-in-up [animation-delay:200ms]">
-            SpendSage uses artificial intelligence to help you understand your spending patterns, 
+            MintSage uses artificial intelligence to help you understand your spending patterns, 
             forecast future expenses, and get personalized tips to achieve your financial goals.
           </p>
           
@@ -132,7 +132,7 @@ export default function LandingPage() {
                 Ready to Take Control of Your Finances?
               </h2>
               <p className="text-lg mb-8 text-emerald-50 max-w-2xl mx-auto text-pretty">
-                Join thousands of users who are already saving more and spending smarter with SpendSage
+                Join thousands of users who are already saving more and spending smarter with MintSage
               </p>
               <Button asChild size="lg" className="bg-white text-emerald-600 hover:bg-emerald-50 shadow-lg">
                 <Link href="/signup" className="gap-2">
@@ -154,11 +154,11 @@ export default function LandingPage() {
                 <Sparkles className="size-5 text-white" />
               </div>
               <span className="text-xl font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                SpendSage
+                MintSage
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2025 SpendSage. All rights reserved.
+              © 2025 MintSage. All rights reserved.
             </p>
           </div>
         </div>

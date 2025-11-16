@@ -27,7 +27,7 @@ export function DashboardHeader() {
             <Sparkles className="size-5 text-white" />
           </div>
           <span className="text-xl font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            SpendSage
+            MintSage
           </span>
         </Link>
 

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
         const plaidResponse: LinkTokenCreateResponse = await plaidClient
             .linkTokenCreate({
-                client_name: 'SpendSage',
+                client_name: 'MintSage',
                 user: { client_user_id: body.userId },
                 language: 'en',
                 country_codes: [CountryCode.Us],
@@ -52,3 +52,4 @@ export async function POST(request: Request) {
         );
     }
 }
+

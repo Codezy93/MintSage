@@ -19,7 +19,7 @@ const MAX_HISTORY_MESSAGES = 12
 const prompt = ChatPromptTemplate.fromMessages([
   [
     'system',
-    `You are SpendSage AI, a personable financial coach. Share clear, structured budgets, savings ideas, and spending insights based only on the details a user provides. Offer 2-4 concise action items when possible, highlight important numbers, and ask clarifying questions when context is missing.`,
+    `You are MintSage AI, a personable financial coach. Share clear, structured budgets, savings ideas, and spending insights based only on the details a user provides. Offer 2-4 concise action items when possible, highlight important numbers, and ask clarifying questions when context is missing.`,
   ],
   new MessagesPlaceholder('history'),
   ['human', '{input}'],
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     } catch (configError) {
       console.error('Groq client is not configured', configError)
       return NextResponse.json(
-        { error: 'SpendSage AI is not available. Please configure GROQ_API_KEY.' },
+        { error: 'MintSage AI is not available. Please configure GROQ_API_KEY.' },
         { status: 500 },
       )
     }
@@ -108,3 +108,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unable to process chat request' }, { status: 500 })
   }
 }
+

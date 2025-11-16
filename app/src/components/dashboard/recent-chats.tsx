@@ -43,7 +43,7 @@ export function RecentChats() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Recent Conversations</CardTitle>
-          <CardDescription>Your latest chats with SpendSage AI</CardDescription>
+          <CardDescription>Your latest chats with MintSage AI</CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm">
           <Link href="/chat">
