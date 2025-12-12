@@ -32,15 +32,6 @@ export function DashboardHeader() {
         </Link>
 
         <div className="flex items-center gap-4">
-          <Button
-            asChild
-            className="bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30"
-          >
-            <Link href="/chat">
-              <MessageSquare className="size-4 mr-2" />
-              AI Chat
-            </Link>
-          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

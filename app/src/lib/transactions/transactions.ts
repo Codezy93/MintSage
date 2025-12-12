@@ -84,7 +84,7 @@ async function getTransactions(): Promise<TransactionsResult> {
   // - YTD
   // - last 6 months
   // - last 30 / 15 days
-  const startDate = addMonths(today, -11)
+  const startDate = addMonths(today, -1)
   const startDateStr = formatDate(startDate)
   const endDateStr = todayStr
 
