@@ -220,7 +220,7 @@ export function InsightsPanel({ transactions }: InsightsPanelProps) {
 
         <form onSubmit={ask} className="space-y-2">
           <Textarea
-            className="min-h-[80px]"
+            className="min-h-80px"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Ask anything about your finances, spending, or trends…"
