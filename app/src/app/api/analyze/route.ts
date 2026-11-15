@@ -2,13 +2,7 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 
-export type TransactionRecord = {
-  id: string
-  created_at: string
-  amount: number
-  vendor: string
-  category: string
-}
+import type { TransactionRecord } from '@/types/transactions'
 
 type AnalyzeRequestBody = {
   transactions: TransactionRecord[]

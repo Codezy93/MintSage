@@ -1,0 +1,22 @@
+# Local configuration
+.env*
+!.env.example
+.DS_Store
+
+# Python environments and generated output
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Deployment bundles and new model exports
+*.zip
+*.pt
+!experiments/forecasting/models/lstm_6to6_state.pt
+!experiments/forecasting/models/lstm_6to6_ts.pt

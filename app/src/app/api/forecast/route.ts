@@ -3,11 +3,6 @@ import { NextResponse } from 'next/server'
 
 const FORECAST_URL = process.env.NEXT_PUBLIC_FORECAST_URL
 
-type ForecastRequestBody = {
-  user_expenses: number[]
-  user_dates: string[]
-}
-
 // helper: Date -> "YYYY-MM-DD"
 function toDateKey(date: Date) {
   const y = date.getFullYear()

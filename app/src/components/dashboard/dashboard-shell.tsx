@@ -2,12 +2,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import type { TransactionRecord } from '@/app/dashboard/page'
+import type { TransactionRecord } from '@/types/transactions'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ForecastChart } from './ForecastChart'
-import { EdaPanel } from './EDAPanel'
-import { ChatPanel, ChatTurn } from './ChatPanel'
+import { ForecastChart } from './forecast-chart'
+import { EdaPanel } from './eda-panel'
+import { ChatPanel, ChatTurn } from './chat-panel'
 import { TransactionTable } from '@/components/dashboard/transaction-table'
 
 type Props = {

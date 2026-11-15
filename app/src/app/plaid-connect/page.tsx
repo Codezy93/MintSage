@@ -10,7 +10,6 @@ import { createClient } from '@/lib/supabase/config'
 import {
   usePlaidLink,
   PlaidLinkOnSuccess,
-  PlaidLinkOnSuccessMetadata,
   PlaidLinkOptions,
   PlaidLinkOnExit,
 } from 'react-plaid-link'
@@ -60,7 +59,7 @@ export default function PlaidConnectPage() {
   }, [])
 
   const handlePlaidSuccess = useCallback<PlaidLinkOnSuccess>(
-    async (publicToken, _metadata: PlaidLinkOnSuccessMetadata) => {
+    async (publicToken) => {
       try {
         const supabase = createClient()
         const {

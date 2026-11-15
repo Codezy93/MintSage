@@ -1,13 +1,11 @@
 import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader, random_split
-import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
 
 SEQ_LEN = 6
-HORIZON = 6  
+MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "lstm_6to6_ts.pt"
 
-def load_and_predict(last_six_values, ts_path="models/lstm_6to6_ts.pt"):
+def load_and_predict(last_six_values, ts_path=MODEL_PATH):
     """
     last_six_values: iterable of 6 floats (most recent observations)
     returns: numpy array of 6 predicted values
@@ -15,7 +13,7 @@ def load_and_predict(last_six_values, ts_path="models/lstm_6to6_ts.pt"):
     if len(last_six_values) != SEQ_LEN:
         raise ValueError(f"Expected 6 input values, got {len(last_six_values)}")
 
-    model = torch.jit.load(ts_path)
+    model = torch.jit.load(str(ts_path))
     model.eval()
 
     x = torch.tensor(last_six_values, dtype=torch.float32).view(1, SEQ_LEN, 1)
@@ -25,9 +23,7 @@ def load_and_predict(last_six_values, ts_path="models/lstm_6to6_ts.pt"):
     return y_hat
 
 if __name__ == "__main__":
-    # Dummy training data: noisy sine wave
-    t = np.linspace(0, 50, 500)
-    series = np.sin(t) + 0.1 * np.random.randn(len(t))
+    # Demonstration input; this is not an accuracy test.
     series = [1,1,1,1,1,1]
     last_6 = series[-6:]
     forecast = load_and_predict(last_6)

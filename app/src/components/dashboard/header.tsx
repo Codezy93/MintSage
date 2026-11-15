@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Sparkles, MessageSquare, LogOut, User } from 'lucide-react'
+import { Sparkles, LogOut, User } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,

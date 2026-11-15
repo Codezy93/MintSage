@@ -1,6 +1,6 @@
 'use client'
 
-import { TransactionRecord } from '@/app/dashboard/page'
+import type { TransactionRecord } from '@/types/transactions'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 
 type Props = {

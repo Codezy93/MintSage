@@ -3,18 +3,8 @@ import { DashboardHeader } from '@/components/dashboard/header'
 import getTransactions from '@/lib/transactions/transactions'
 import { DashboardShell } from '@/components/dashboard/dashboard-shell'
 
-export type TransactionRecord = {
-  id: string
-  created_at: string
-  amount: number
-  vendor: string
-  category: string
-}
-
 export default async function DashboardPage() {
-  const { transactions } = (await getTransactions()) as {
-    transactions: TransactionRecord[]
-  }
+  const { transactions } = await getTransactions()
 
   return (
     <div className="min-h-screen flex flex-col bg-linear-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950 dark:via-teal-950 dark:to-cyan-950">
