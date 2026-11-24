@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Sparkles, Building2, CreditCard, Shield, CheckCircle2, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/config'
 import {
   usePlaidLink,
   PlaidLinkOnSuccess,
@@ -22,13 +21,9 @@ export default function PlaidConnectPage() {
   const [linkToken, setLinkToken] = useState<string | null>(null)
   const [shouldOpenLink, setShouldOpenLink] = useState(false)
 
-  const fetchLinkToken = useCallback(async (userId: string) => {
+  const fetchLinkToken = useCallback(async () => {
     const response = await fetch('/api/plaid/create-link-token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId }),
     })
 
     const payload = (await response.json().catch(() => ({}))) as {
@@ -44,32 +39,9 @@ export default function PlaidConnectPage() {
     return payload.link_token
   }, [])
 
-  const saveAccessToken = useCallback(async (accessToken: string, userId: string) => {
-    const supabase = createClient()
-    const { error: upsertError } = await supabase
-      .from('plaid_tokens')
-      .upsert(
-        { id: userId, token: accessToken },
-        { onConflict: 'id' }, // assumes id is PK / unique
-      )
-
-    if (upsertError) {
-      throw upsertError
-    }
-  }, [])
-
   const handlePlaidSuccess = useCallback<PlaidLinkOnSuccess>(
     async (publicToken) => {
       try {
-        const supabase = createClient()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (!user) {
-          throw new Error('No authenticated user found')
-        }
-
         const response = await fetch('/api/plaid/exchange-public-token', {
           method: 'POST',
           headers: {
@@ -79,15 +51,13 @@ export default function PlaidConnectPage() {
         })
 
         const payload = (await response.json().catch(() => ({}))) as {
-          access_token?: string
+          connected?: boolean
           error?: string
         }
 
-        if (!response.ok || !payload.access_token) {
+        if (!response.ok || payload.connected !== true) {
           throw new Error(payload.error ?? 'Failed to exchange Plaid token')
         }
-
-        await saveAccessToken(payload.access_token, user.id)
 
         setIsConnected(true)
         setIsConnecting(false)
@@ -98,12 +68,13 @@ export default function PlaidConnectPage() {
           router.refresh()
         }, 1500)
       } catch (err: unknown) {
+        setLinkToken(null)
         setError(err instanceof Error ? err.message : 'Failed to complete Plaid connection')
         setIsConnecting(false)
         setShouldOpenLink(false)
       }
     },
-    [router, saveAccessToken],
+    [router],
   )
 
   const handlePlaidExit = useCallback<PlaidLinkOnExit>((plaidError) => {
@@ -146,17 +117,8 @@ export default function PlaidConnectPage() {
       setError(null)
 
       try {
-        const supabase = createClient()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (!user) {
-          throw new Error('No authenticated user found')
-        }
-
         if (!linkToken) {
-          await fetchLinkToken(user.id)
+          await fetchLinkToken()
         }
 
         setShouldOpenLink(true)

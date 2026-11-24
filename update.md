@@ -6,8 +6,8 @@ This file consolidates all planning from the original discovery audit, engineeri
 upgrade plan, repository cleanup, product clarification, and personal-finance expansion.
 It preserves steps 0–23 and includes a mapping back to the original tiered proposal.
 
-Step 0 is complete in the working tree. Some cleanup items from later steps were also
-completed during step 0 and are checked below; the remaining work is planned.
+Step 0 is complete. Step 1 has app changes and a database migration, with
+configured integration checks still pending. Checked items below record completed work.
 Saving this plan does not implement or deploy the remaining features. Verification
 results below were recorded during the November 12 cleanup, not rerun on November 15.
 
@@ -56,7 +56,7 @@ The original step numbers are retained so earlier discussions remain traceable.
 
 ### Step 0 — Organize files and remove dead code
 
-Status: complete in the working tree; not committed by this task.
+Status: complete in commit `98e34f1`.
 
 - [x] Group offline Python scripts, models, and sample data in `experiments/forecasting/`.
 - [x] Move SQL definitions to `database/schema/`.
@@ -73,12 +73,22 @@ Live integrations were not verified.
 
 ### Step 1 — Secure Plaid token storage
 
-- [ ] Exchange and persist access tokens entirely on the server.
-- [ ] Remove token values from browser responses and client-side writes.
-- [ ] Add a migration explicitly enabling RLS and restricting database permissions.
-- [ ] Prevent authenticated browser clients from reading or writing the token table;
+- [x] Exchange and persist access tokens entirely on the server.
+- [x] Remove token values from browser responses and client-side writes.
+- [x] Add a migration explicitly enabling RLS and restricting database permissions.
+- [x] Prevent authenticated browser clients from reading or writing the token table;
   use narrowly scoped server-only access for token operations.
 - [ ] Verify anonymous, cross-user, and direct browser database access are denied.
+
+Both Plaid routes use the verified session. The dashboard performs the connection
+lookup through the server-only token store. See the README for the migration,
+server secret, and integration checks.
+
+Local verification passed for the Plaid routes with mocked providers and for
+the migration in embedded PostgreSQL. Anonymous and authenticated roles were
+denied reads and writes for both fixture users. The service role could read
+existing rows and upsert new and existing connections. Hosted Supabase and
+Plaid Sandbox verification remains pending.
 
 ### Step 2 — Protect API routes and secrets
 
@@ -90,7 +100,7 @@ Live integrations were not verified.
 ### Step 3 — Repair session handling
 
 - [ ] Move `app/proxy.ts` into `app/src/` and verify framework registration.
-- [ ] Replace the nonexistent `users.plaid_token` lookup with a safe connection-status check.
+- [x] Replace the nonexistent `users.plaid_token` lookup with a safe connection-status check.
 - [ ] Verify login redirects, session refresh, logout, and API authorization behavior.
 
 ### Step 4 — Correct the financial data pipeline
@@ -352,4 +362,4 @@ additional engineering work and the subsequently discussed personal-finance scop
 - Do not rewrite Git history or force-push as part of ordinary cleanup. That remains a
   separate action requiring explicit approval.
 
-Next implementation step: **Step 1 — Secure Plaid token storage**.
+Next checkpoint: **Verify Step 1 in configured Supabase and Plaid Sandbox services**.

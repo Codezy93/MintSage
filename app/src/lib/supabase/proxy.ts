@@ -44,21 +44,5 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Check plaid_token for dashboard access
-  if (user && request.nextUrl.pathname.startsWith("/dashboard")) {
-    const { data: userData } = await supabase
-      .from("users")
-      .select("plaid_token")
-      .eq("id", user.id)
-      .single();
-
-    // Redirect to plaid-connect if no plaid_token
-    if (!userData?.plaid_token) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/plaid-connect";
-      return NextResponse.redirect(url);
-    }
-  }
-
   return supabaseResponse;
 }

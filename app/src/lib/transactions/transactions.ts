@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { plaidClient } from '@/lib/plaid/config'
+import { getPlaidToken } from '@/lib/plaid/tokens'
 import type { TransactionRecord } from '@/types/transactions'
 import { redirect } from 'next/navigation'
 
@@ -67,13 +68,8 @@ async function getTransactions(): Promise<TransactionsResult> {
     redirect('/login')
   }
 
-  const { data: plaidTokenData, error: plaidTokenError } = await supabase
-    .from('plaid_tokens')
-    .select('token')
-    .eq('id', user.id)
-    .single()
-
-  if (plaidTokenError || !plaidTokenData?.token) {
+  const plaidToken = await getPlaidToken(user)
+  if (!plaidToken) {
     redirect('/plaid-connect')
   }
 
@@ -95,7 +91,7 @@ async function getTransactions(): Promise<TransactionsResult> {
   try {
     while (true) {
       const plaidResponse = await plaidClient.transactionsGet({
-        access_token: plaidTokenData.token,
+        access_token: plaidToken,
         start_date: startDateStr,
         end_date: endDateStr,
         options: {
@@ -112,8 +108,8 @@ async function getTransactions(): Promise<TransactionsResult> {
 
       offset += pageSize
     }
-  } catch (error) {
-    console.error('Failed to fetch transactions from Plaid', error)
+  } catch {
+    console.error('Failed to fetch transactions from Plaid')
     // Fall back to empty
     allPlaidTx = []
   }

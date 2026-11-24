@@ -18,14 +18,14 @@ app/                         Next.js web app and API routes
   src/lib/                   Supabase, Plaid, and transaction helpers
   src/types/                 Shared transaction type
 database/schema/             Original Supabase table and policy definitions
+database/migrations/         SQL changes applied after the existing schema
 docs/                        Implementation roadmap and project documentation
 experiments/forecasting/      Offline Python experiments, models, and sample data
 ```
 
 The web app is independent of the Python experiments. See the
 [experiment notes](experiments/forecasting/README.md) for their entry points
-and limitations. The SQL files are existing schema definitions, not an ordered
-migration system; they define policies but do not explicitly enable RLS.
+and limitations.
 
 ## Web development
 
@@ -35,11 +35,28 @@ npm ci
 npm run dev
 ```
 
-Live functionality requires external service configuration. This structural
-cleanup does not resolve the authentication, secret handling, dependency,
-or forecasting issues identified in the audit. In particular, `app/proxy.ts`
+Live functionality requires external service configuration. Broader API
+authorization, secret handling, dependency, and forecasting work remain
+pending. In particular, `app/proxy.ts`
 is retained in its existing location pending the session-handling repair;
 it should not be relied on for route protection.
+
+### Plaid token storage
+
+Set `SUPABASE_SECRET_KEY` in the Next.js server environment to a Supabase secret
+key for the project identified by `NEXT_PUBLIC_SUPABASE_URI`. Keep this key out
+of browser configuration and source control.
+
+Apply the [token storage migration](database/migrations/202611220001_secure_plaid_tokens.sql)
+to the database that already contains `public.plaid_tokens`. For a fresh
+database, load the definitions in `database/schema/` first. Roll out the app
+and migration together because the migration revokes the old app's access.
+Existing token rows are retained.
+
+In staging, link a Plaid Sandbox account and open the dashboard. Confirm
+that the exchange returns only `{ "connected": true }` and that both Plaid
+routes return 401 without a session. Confirm that anonymous and signed-in
+browser clients cannot read or write token rows, including their own.
 
 Local checks, from `app/`:
 

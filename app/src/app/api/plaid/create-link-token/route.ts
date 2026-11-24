@@ -5,10 +5,7 @@ import {
     Products,
 } from 'plaid';
 import { plaidClient } from '@/lib/plaid/config';
-
-type CreateLinkTokenBody = {
-    userId?: string;
-};
+import { createClient } from '@/lib/supabase/server';
 
 function parseProducts(): Products[] {
     const fromEnv = process.env.NEXT_PUBLIC_PLAID_PRODUCTS;
@@ -22,20 +19,18 @@ function parseProducts(): Products[] {
         .filter(Boolean) as Products[];
 }
 
-export async function POST(request: Request) {
+export async function POST() {
     try {
-        const body = (await request.json().catch(() => ({}))) as CreateLinkTokenBody;
-        if (!body.userId) {
-            return NextResponse.json(
-                { error: 'Missing userId when creating Plaid link token' },
-                { status: 400 },
-            );
+        const supabase = await createClient();
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
         }
 
         const plaidResponse: LinkTokenCreateResponse = await plaidClient
             .linkTokenCreate({
                 client_name: 'MintSage',
-                user: { client_user_id: body.userId },
+                user: { client_user_id: user.id },
                 language: 'en',
                 country_codes: [CountryCode.Us],
                 products: parseProducts(),
@@ -44,8 +39,8 @@ export async function POST(request: Request) {
             .then((res) => res.data);
 
         return NextResponse.json({ link_token: plaidResponse.link_token });
-    } catch (error) {
-        console.error('Create link token error', error);
+    } catch {
+        console.error('Failed to create Plaid link token');
         return NextResponse.json(
             { error: 'Failed to create Plaid link token' },
             { status: 500 },
