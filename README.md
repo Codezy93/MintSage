@@ -35,11 +35,23 @@ npm ci
 npm run dev
 ```
 
-Live functionality requires external service configuration. Broader API
-authorization, secret handling, dependency, and forecasting work remain
-pending. In particular, `app/proxy.ts`
-is retained in its existing location pending the session-handling repair;
-it should not be relied on for route protection.
+Copy `app/.env.example` to `app/.env.local` and configure the providers.
+Rename any older `NEXT_PUBLIC_PLAID_*`, `NEXT_PUBLIC_GEMINI_API_KEY`, and
+`NEXT_PUBLIC_FORECAST_URL` variables to their server-only names in the example.
+Rotate previously exposed secrets when deploying the change.
+Next.js registers the session proxy from `app/src/proxy.ts`.
+
+Apply database migrations in filename order before deploying the app.
+The transaction sync migration adds private per-connection storage and an event
+table for agent consumers. The dashboard requests 365 days for new items,
+syncs on load, and shows USD insights only after historical sync and evidence
+of 60 days of coverage. Institution updates older than 48 hours suppress insights.
+Posted refunds offset category spending. Transfers and debt repayments stay
+in the ledger and are excluded from spending. Ambiguous rows carry a review flag.
+
+Agent endpoints must be wrapped with `agent_service.auth.ServiceAuthentication`
+using the same secret as Next.js. Handlers use the authenticated ASGI state
+field `user_id`. The agent workflow itself is scheduled for later steps.
 
 ### Plaid token storage
 
@@ -62,6 +74,7 @@ Local checks, from `app/`:
 
 ```sh
 npx tsc --noEmit
+node --test tests/transactions.test.mjs  # Node 22.18+
 npm run lint
 npm run build
 ```

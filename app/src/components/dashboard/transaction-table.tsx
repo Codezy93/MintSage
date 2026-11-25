@@ -38,7 +38,7 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
     <Card className="bg-white/60 dark:bg-background/60 backdrop-blur-sm border-emerald-200/50 dark:border-emerald-800/50">
       <CardHeader>
         <CardTitle>Recent Transactions</CardTitle>
-        <CardDescription>Last 90 days of transaction history</CardDescription>
+        <CardDescription>Posted and pending activity in the account currency</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="rounded-lg border border-emerald-200/50 dark:border-emerald-800/50 overflow-hidden">
@@ -56,12 +56,12 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
                 transactions.map((transaction) => (
                   <TableRow key={transaction.id} className="hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10">
                     <TableCell className="font-medium">
-                      {new Date(transaction.created_at).toLocaleDateString('en-US', {
+                      {new Date(transaction.date).toLocaleDateString('en-US', { timeZone: 'UTC',
                         month: 'short',
                         day: 'numeric',
                       })}
                     </TableCell>
-                    <TableCell>{transaction.vendor}</TableCell>
+                    <TableCell>{transaction.vendor}{transaction.pending && ' (pending)'}</TableCell>
                     <TableCell>
                       <Badge
                         variant="secondary"
@@ -72,7 +72,7 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       <span className={transaction.amount > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                        {transaction.amount > 0 ? '-' : ''}${Math.abs(Number(transaction.amount ?? 0)).toFixed(2)}
+                        {transaction.amount > 0 ? '-' : ''}{Math.abs(transaction.amount).toFixed(2)} {transaction.currency ?? 'unknown currency'}
                       </span>
                     </TableCell>
                   </TableRow>

@@ -8,7 +8,7 @@ import { plaidClient } from '@/lib/plaid/config';
 import { createClient } from '@/lib/supabase/server';
 
 function parseProducts(): Products[] {
-    const fromEnv = process.env.NEXT_PUBLIC_PLAID_PRODUCTS;
+    const fromEnv = process.env.PLAID_PRODUCTS;
     if (!fromEnv) {
         return [Products.Transactions];
     }
@@ -34,7 +34,8 @@ export async function POST() {
                 language: 'en',
                 country_codes: [CountryCode.Us],
                 products: parseProducts(),
-                redirect_uri: process.env.NEXT_PUBLIC_PLAID_REDIRECT_URI || undefined,
+                transactions: { days_requested: 365 },
+                redirect_uri: process.env.PLAID_REDIRECT_URI || undefined,
             })
             .then((res) => res.data);
 

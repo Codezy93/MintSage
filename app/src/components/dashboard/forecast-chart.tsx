@@ -32,7 +32,7 @@ export function ForecastChart({
     ...forecastDates.map((d, i) => ({
       date: d,
       actual: null,
-      forecast: forecastValues[i] ?? 0,
+      forecast: forecastValues[i] ?? null,
     })),
   ]
 

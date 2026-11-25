@@ -51,7 +51,6 @@ export default function SignupPage() {
 
       if (signUpError) throw signUpError
 
-      console.log(data);
       const { error } = await supabase.from('users').insert({ id: data.user?.id, phone: formData.phone , name: formData.name});
       if (error) throw error
       

@@ -1,10 +1,11 @@
 'use client'
 
-import type { TransactionRecord } from '@/types/transactions'
+import type { SpendingAnalysis } from '@/lib/transactions/analysis'
+import { countsAsSpending, type TransactionRecord } from '@/types/transactions'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 
 type Props = {
-  eda: any
+  eda: SpendingAnalysis | null
   transactions: TransactionRecord[]
 }
 
@@ -51,7 +52,7 @@ function fmt(n: number) {
 function buildCategoryData(transactions: TransactionRecord[]) {
   const map = new Map<string, number>()
   for (const tx of transactions) {
-    if (tx.amount <= 0) continue
+    if (!countsAsSpending(tx)) continue
     map.set(tx.category, (map.get(tx.category) ?? 0) + tx.amount)
   }
   return Array.from(map.entries())
@@ -72,18 +73,18 @@ function computeExtraInsights(transactions: TransactionRecord[]) {
   const categoryExpense = new Map<string, number>()
 
   for (const tx of transactions) {
-    const day = tx.created_at.split('T')[0]
+    const day = tx.date
     const vendor = tx.vendor ?? 'Unknown'
     const cat = tx.category ?? 'UNKNOWN'
 
     vendorCount.set(vendor, (vendorCount.get(vendor) ?? 0) + 1)
     categoryCount.set(cat, (categoryCount.get(cat) ?? 0) + 1)
 
-    if (tx.amount > 0) {
+    if (countsAsSpending(tx)) {
       totalExpense += tx.amount
       dayExpense.set(day, (dayExpense.get(day) ?? 0) + tx.amount)
       categoryExpense.set(cat, (categoryExpense.get(cat) ?? 0) + tx.amount)
-    } else if (tx.amount < 0) {
+    } else if (!tx.pending && tx.kind === 'income') {
       const inc = -tx.amount
       totalIncome += inc
       dayIncome.set(day, (dayIncome.get(day) ?? 0) + inc)
@@ -107,7 +108,7 @@ function computeExtraInsights(transactions: TransactionRecord[]) {
   const mostFrequentCategory =
     Array.from(categoryCount.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'N/A'
 
-  const uniqueDays = new Set(transactions.map((t) => t.created_at.split('T')[0]))
+  const uniqueDays = new Set(transactions.map((t) => t.date))
   const numActiveDays = uniqueDays.size || 1
 
   const avgExpensePerActiveDay = totalExpense / numActiveDays
@@ -309,7 +310,7 @@ export function EdaPanel({ eda, transactions }: Props) {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(v: any, name: any) => [
+                      formatter={(v, name) => [
                         typeof v === 'number' ? v.toFixed(2) : v,
                         name,
                       ]}

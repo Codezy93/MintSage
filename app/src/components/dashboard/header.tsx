@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/config'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sparkles, LogOut, User } from 'lucide-react'
 import {
@@ -13,10 +14,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 export function DashboardHeader() {
-  const router = useRouter()
+  const [error, setError] = useState(false)
 
-  const handleLogout = () => {
-    router.push('/login')
+  const handleLogout = async () => {
+    const { error } = await createClient().auth.signOut({ scope: 'local' })
+    if (error) return setError(true)
+    window.location.replace('/login')
   }
 
   return (
@@ -33,6 +36,7 @@ export function DashboardHeader() {
 
         <div className="flex items-center gap-4">
 
+          {error && <span role="alert">Sign out failed. Try again.</span>}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="rounded-full">

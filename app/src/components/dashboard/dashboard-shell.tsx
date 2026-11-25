@@ -2,7 +2,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import type { TransactionRecord } from '@/types/transactions'
+import type { SpendingAnalysis } from '@/lib/transactions/analysis'
+import { countsAsSpending, type TransactionRecord } from '@/types/transactions'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ForecastChart } from './forecast-chart'
@@ -12,66 +13,40 @@ import { TransactionTable } from '@/components/dashboard/transaction-table'
 
 type Props = {
   initialTransactions: TransactionRecord[]
+  historyReady: boolean
 }
 
-type EDA = any
+
 
 const INITIAL_QUESTION =
   'What are good things and bad things in the transaction history?'
 
-// helper to build last 60 days from transactions on client
-// helper to build last 60 days from transactions on client
-function buildLast60Days(
-  transactions: TransactionRecord[],
-): { user_dates: string[]; user_expenses: number[] } {
+function buildLast60Days(transactions: TransactionRecord[]) {
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const toKey = (d: Date) => {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${dd}`
-  }
-
   const daily = new Map<string, number>()
-
-  // init 60 days window [today-59, ..., today]
   for (let offset = 59; offset >= 0; offset--) {
-    const d = new Date(today)
-    d.setDate(today.getDate() - offset)
-    daily.set(toKey(d), 0)
+    const day = new Date(today)
+    day.setUTCDate(today.getUTCDate() - offset)
+    daily.set(day.toISOString().slice(0, 10), 0)
   }
-
-  // 👉 HERE: treat *positive* values as expenses
   for (const tx of transactions) {
-    const d = new Date(tx.created_at)
-    d.setHours(0, 0, 0, 0)
-    const diff =
-      (today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)
-    if (diff < 0 || diff > 59) continue
-
-    const key = toKey(d)
-    const expense = tx.amount > 0 ? tx.amount : 0
-    daily.set(key, (daily.get(key) ?? 0) + expense)
+    if (countsAsSpending(tx) && daily.has(tx.date)) {
+      daily.set(tx.date, daily.get(tx.date)! + tx.amount)
+    }
   }
-
-  return {
-    user_dates: Array.from(daily.keys()),
-    user_expenses: Array.from(daily.values()),
-  }
+  return { user_dates: [...daily.keys()], user_expenses: [...daily.values()] }
 }
 
-export function DashboardShell({ initialTransactions }: Props) {
+export function DashboardShell({ initialTransactions, historyReady }: Props) {
   const [forecast, setForecast] = useState<number[]>([])
   const [horizonDates, setHorizonDates] = useState<string[]>([])
-  const [eda, setEda] = useState<EDA | null>(null)
+  const [eda, setEda] = useState<SpendingAnalysis | null>(null)
   const [chat, setChat] = useState<ChatTurn[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const transactions = initialTransactions
+  const transactions = useMemo(() => initialTransactions.filter(tx => tx.currency === 'USD'), [initialTransactions])
 
   const last60 = useMemo(
     () => buildLast60Days(transactions),
@@ -80,7 +55,7 @@ export function DashboardShell({ initialTransactions }: Props) {
 
   useEffect(() => {
     async function runPipeline() {
-      if (!transactions.length) {
+      if (!transactions.length || !historyReady) {
         setLoading(false)
         return
       }
@@ -99,6 +74,7 @@ export function DashboardShell({ initialTransactions }: Props) {
           }),
         })
         const fJson = await fRes.json()
+        if (!fRes.ok) throw new Error(fJson.error || 'Forecast unavailable')
 
         const fArray: number[] = Array.isArray(fJson.forecast)
           ? fJson.forecast
@@ -129,19 +105,19 @@ export function DashboardShell({ initialTransactions }: Props) {
             answer: aJson.answer,
           },
         ])
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('[DashboardShell] pipeline error:', e)
-        setError(e.message || 'Failed to load insights.')
+        setError(e instanceof Error ? e.message : 'Failed to load insights.')
       } finally {
         setLoading(false)
       }
     }
 
     runPipeline()
-  }, [transactions, last60.user_dates, last60.user_expenses])
+  }, [historyReady, transactions, last60.user_dates, last60.user_expenses])
 
   async function handleAsk(question: string) {
-    if (!question.trim()) return
+    if (!historyReady || !question.trim()) return
     try {
       setSending(true)
       const res = await fetch('/api/analyze', {
@@ -161,9 +137,9 @@ export function DashboardShell({ initialTransactions }: Props) {
         { question, answer: json.answer },
         ...prev,
       ])
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[DashboardShell] ask error:', e)
-      setError(e.message || 'Failed to get answer.')
+      setError(e instanceof Error ? e.message : 'Failed to get answer.')
     } finally {
       setSending(false)
     }
@@ -184,11 +160,11 @@ export function DashboardShell({ initialTransactions }: Props) {
     )
   }
 
-  if (!transactions.length) {
+  if (!initialTransactions.length) {
     return (
       <main className="flex-1 container mx-auto px-4 pb-4 pt-3 overflow-hidden">
         <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-          No transactions yet. Connect your accounts to see insights.
+          {historyReady ? 'No transactions in the available history.' : 'Complete, current USD history is unavailable.'}
         </div>
       </main>
     )
@@ -196,6 +172,8 @@ export function DashboardShell({ initialTransactions }: Props) {
 
   return (
     <main className="flex-1 container mx-auto px-4 pb-4 pt-3 overflow-hidden">
+      {!transactions.length && <p>There are no USD transactions to analyze.</p>}
+      {!historyReady && <p>Insights unavailable until current, complete 60-day history is available for each USD account.</p>}
       {error && (
         <div className="mb-2 text-xs text-red-500">{error}</div>
       )}
@@ -203,16 +181,16 @@ export function DashboardShell({ initialTransactions }: Props) {
 
         {/* Top-right: EDA */}
         <Card className="p-4 flex flex-col overflow-hidden">
-          <EdaPanel eda={eda} transactions={transactions} />
+          {historyReady && transactions.length > 0 && <EdaPanel eda={eda} transactions={transactions} />}
         </Card>
 
         <Card className="p-4 flex flex-col">
-          <ForecastChart
+          {historyReady && transactions.length > 0 && <ForecastChart
             historyDates={last60.user_dates}
             historyValues={last60.user_expenses}
             forecastDates={horizonDates}
             forecastValues={forecast}
-          />
+          />}
         </Card>
 
         {/* Bottom-left: Transactions */}
@@ -222,18 +200,18 @@ export function DashboardShell({ initialTransactions }: Props) {
           </h2>
           <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background/40 overflow-hidden">
             <div className="h-full overflow-y-auto">
-              <TransactionTable transactions={transactions} />
+              <TransactionTable transactions={initialTransactions} />
             </div>
           </div>
         </Card>
 
         {/* Bottom-right: Chat */}
         <Card className="p-4 flex flex-col overflow-hidden">
-          <ChatPanel
+          {historyReady && transactions.length > 0 && <ChatPanel
             chat={chat}
             onAsk={handleAsk}
             sending={sending}
-          />
+          />}
         </Card>
       </div>
     </main>

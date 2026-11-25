@@ -7,10 +7,9 @@ agent-system steps 24–34, and keeps a mapping back to the original tiered prop
 
 Step 0 is complete. Step 1 has app changes and a database migration, with
 configured integration checks still pending. Checked items below record completed work.
-No implementation status changed between the 2026-11-15 and 2026-11-24 revisions;
-this revision changes scope and architecture only. Saving this plan does not implement
-or deploy the remaining features. Verification results below were recorded during the
-November 12 cleanup, not rerun since.
+Steps 2–5 were implemented and verified locally on November 25. Production build,
+TypeScript, and lint passed. Session and provider checks used fixtures, and migration
+checks used embedded PostgreSQL. Hosted verification and deployment remain open.
 
 ## What changed in this revision
 
@@ -121,42 +120,48 @@ Plaid Sandbox verification remains pending.
 
 ### Step 2 — Protect API routes and secrets
 
-- [ ] Require verified sessions on all API routes; derive identity from the session.
-- [ ] Remove `NEXT_PUBLIC_` from private secrets and enforce server-only imports.
-- [ ] Add `.env.example` with placeholders and document each variable's purpose.
-- [ ] Verify unauthorized requests do not invoke paid downstream services.
-- [ ] Authenticate Next.js → agent-service calls; the agent service must never trust a
+- [x] Require verified sessions on all API routes; derive identity from the session.
+- [x] Remove `NEXT_PUBLIC_` from private secrets and enforce server-only imports.
+- [x] Add `.env.example` with placeholders and document each variable's purpose.
+- [x] Verify unauthorized requests do not invoke paid downstream services.
+- [x] Authenticate Next.js → agent-service calls; the agent service must never trust a
   user ID supplied in a request body (see step 32).
 
 ### Step 3 — Repair session handling
 
-- [ ] Move `app/proxy.ts` into `app/src/` and verify framework registration.
+- [x] Move `app/proxy.ts` into `app/src/` and verify framework registration.
 - [x] Replace the nonexistent `users.plaid_token` lookup with a safe connection-status check.
-- [ ] Verify login redirects, session refresh, logout, and API authorization behavior.
+- [x] Verify login redirects, session refresh, logout, and API authorization behavior.
 
 ### Step 4 — Correct the financial data pipeline
 
-- [ ] Fetch sufficient history for the forecast window and every displayed summary.
-- [ ] Preserve account IDs, transaction IDs, dates, pending status, merchant identifiers,
+- [x] Fetch sufficient history for the forecast window and every displayed summary.
+- [x] Preserve account IDs, transaction IDs, dates, pending status, merchant identifiers,
   and Plaid primary/detailed categories in shared types and storage.
-- [ ] Handle transaction additions, modifications, removals, and pending-to-posted changes
+- [x] Handle transaction additions, modifications, removals, and pending-to-posted changes
   without duplicating records; use incremental synchronization where appropriate.
-- [ ] Use consistent date-only handling and explicit currency/account boundaries.
-- [ ] Define spending versus cash-flow rules, including refunds, internal transfers,
+- [x] Use consistent date-only handling and explicit currency/account boundaries.
+- [x] Define spending versus cash-flow rules, including refunds, internal transfers,
   credit-card purchases, and repayments. Do not count purchases and repayments twice.
-- [ ] Distinguish missing history, stale data, and fetch failures from real zero spending.
-- [ ] Verify pagination, date boundaries, duplicates, transfers, and category preservation.
-- [ ] Emit a sync-completed event (with changed transaction IDs) that can trigger agent runs.
-- [ ] Mark transactions the rules cannot classify confidently (for example, ambiguous
+- [x] Distinguish missing history, stale data, and fetch failures from real zero spending.
+- [x] Verify pagination, date boundaries, duplicates, transfers, and category preservation.
+- [x] Emit a sync-completed event (with changed transaction IDs) that can trigger agent runs.
+- [x] Mark transactions the rules cannot classify confidently (for example, ambiguous
   transfer pairs) so the reconciliation agent can review them. Counting rules stay in code.
 
 ### Step 5 — Complete code and type cleanup
 
 - [x] Remove the orphaned chat route, unused dashboard components, and unused dependencies.
 - [x] Consolidate duplicate transaction types.
-- [ ] Check the expanded data pipeline for obsolete types, links, and imports.
+- [x] Check the expanded data pipeline for obsolete types, links, and imports.
 
-Most original step 5 work was completed in step 0; do not repeat completed deletions.
+November 25 verification covered all current API methods, denied service credentials,
+verified user propagation, proxy registration, cookie forwarding, and logout success
+and failure. Sync fixtures covered pagination, modifications, removals, pending
+replacement, category preservation, currency and spending rules, and leap-day
+boundaries. Database fixtures checked atomic cursor advancement, event creation,
+stale writer rejection, and browser-role denials. The agent authentication boundary
+was exercised independently pending the agent workflow implementation in step 25.
 
 ### Step 6 — Update and pin dependencies
 

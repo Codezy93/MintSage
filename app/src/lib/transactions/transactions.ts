@@ -1,228 +1,73 @@
-import { createClient } from '@/lib/supabase/server'
-import { plaidClient } from '@/lib/plaid/config'
-import { getPlaidToken } from '@/lib/plaid/tokens'
-import type { TransactionRecord } from '@/types/transactions'
+import 'server-only'
 import { redirect } from 'next/navigation'
+import { normalize } from '@/lib/transactions/normalize'
+import { verifiedUser } from '@/lib/supabase/verified-user'
+import { privateClient } from '@/lib/supabase/private'
+import { plaidClient } from '@/lib/plaid/config'
+import type { TransactionRecord } from '@/types/transactions'
 
-// ---- Types for the summary ----
-
-export type SpendingSummary = {
-  totalToday: number
-  totalMonthToDate: number
-  totalLast30Days: number
-  totalYearToDate: number
-  avgMonthlyCostYTD: number
-  monthlyTotalsLast6Months: { month: string; total: number }[] // YYYY-MM
-  dailyTotalsLast15Days: { date: string; total: number }[]     // YYYY-MM-DD
-}
-
-export type TransactionsResult = {
-  transactions: TransactionRecord[]
-  summary: SpendingSummary
-}
-
-// ---- Date helpers ----
-
-function formatDate(d: Date): string {
-  return d.toISOString().slice(0, 10) // YYYY-MM-DD
-}
-
-function addMonths(d: Date, delta: number): Date {
-  const copy = new Date(d)
-  copy.setMonth(copy.getMonth() + delta)
-  return copy
-}
-
-function addDays(d: Date, delta: number): Date {
-  const copy = new Date(d)
-  copy.setDate(copy.getDate() + delta)
-  return copy
-}
-
-function isBetween(dateStr: string, fromStr: string, toStr: string): boolean {
-  return dateStr >= fromStr && dateStr <= toStr
-}
-
-// Only count real expenses (no pending, no income/transfer)
-function isExpense(tx: any): boolean {
-  if (tx.pending) return false
-  if (tx.amount <= 0) return false
-
-  const primary = tx.personal_finance_category?.primary
-  if (primary === 'INCOME' || primary === 'TRANSFER') return false
-
-  return true
-}
-
-// ---- Main function ----
-
-async function getTransactions(): Promise<TransactionsResult> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    redirect('/login')
-  }
-
-  const plaidToken = await getPlaidToken(user)
-  if (!plaidToken) {
-    redirect('/plaid-connect')
-  }
-
-  const today = new Date()
-  const todayStr = formatDate(today)
-
-  // Fetch last 12 months to comfortably cover:
-  // - YTD
-  // - last 6 months
-  // - last 30 / 15 days
-  const startDate = addMonths(today, -1)
-  const startDateStr = formatDate(startDate)
-  const endDateStr = todayStr
-
-  let allPlaidTx: any[] = []
-  const pageSize = 100
-  let offset = 0
-
-  try {
-    while (true) {
-      const plaidResponse = await plaidClient.transactionsGet({
-        access_token: plaidToken,
-        start_date: startDateStr,
-        end_date: endDateStr,
-        options: {
-          count: pageSize,
-          offset,
-        },
-      })
-
-      const { transactions, total_transactions } = plaidResponse.data
-
-      allPlaidTx = allPlaidTx.concat(transactions)
-
-      if (allPlaidTx.length >= total_transactions) break
-
-      offset += pageSize
+export default async function getTransactions() {
+  const user = await verifiedUser()
+  if (!user) redirect('/login')
+  const db = privateClient()
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await db.from('plaid_tokens')
+      .select('token,sync_cursor,sync_revision,transactions').eq('id', user.id).maybeSingle()
+    if (error) throw new Error('Unable to read transaction history')
+    if (!data?.token) redirect('/plaid-connect')
+    const changes = new Map<string, TransactionRecord>()
+    const removed = new Set<string>()
+    const replacedPending = new Set<string>()
+    const remove = (id: string) => {
+      changes.delete(id)
+      removed.add(id)
     }
-  } catch {
-    console.error('Failed to fetch transactions from Plaid')
-    // Fall back to empty
-    allPlaidTx = []
+    let cursor: string | undefined = data.sync_cursor ?? undefined
+    let ready = false
+    try {
+      while (true) {
+        const page = (await plaidClient.transactionsSync({
+          access_token: data.token, cursor, count: 500,
+          options: { days_requested: 365, include_personal_finance_category: true },
+        })).data
+        for (const tx of [...page.added, ...page.modified]) {
+          if (tx.pending_transaction_id) replacedPending.add(tx.pending_transaction_id)
+          changes.set(tx.transaction_id, normalize(tx))
+          removed.delete(tx.transaction_id)
+        }
+        for (const tx of page.removed) remove(tx.transaction_id)
+        ready = page.transactions_update_status === 'HISTORICAL_UPDATE_COMPLETE'
+        if (page.has_more && (!page.next_cursor || page.next_cursor === cursor)) throw new Error('Pagination stalled')
+        cursor = page.next_cursor
+        if (!page.has_more) break
+      }
+    } catch (error) {
+      const provider = error as { response?: { data?: { error_code?: string } } }
+      if (provider.response?.data?.error_code === 'TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION') continue
+      throw new Error('Transaction sync failed. Refresh to retry.')
+    }
+    for (const id of replacedPending) remove(id)
+    const { data: committed, error: writeError } = await db.rpc('commit_transaction_sync', {
+      owner_id: user.id, expected_token: data.token, revision: data.sync_revision,
+      next_cursor: cursor || null, changes: Object.fromEntries(changes), removed: [...removed],
+    })
+    if (writeError) throw new Error('Unable to persist transaction sync')
+    if (!committed) continue
+    const snapshot = new Map(Object.entries(data.transactions as Record<string, TransactionRecord>))
+    for (const id of removed) snapshot.delete(id)
+    for (const [id, tx] of changes) snapshot.set(id, tx)
+    const transactions = [...snapshot.values()].sort((a,b) => b.date.localeCompare(a.date))
+    const status = await plaidClient.itemGet({ access_token: data.token })
+    const updated = status.data.status?.transactions?.last_successful_update
+    const cutoff = new Date()
+    cutoff.setUTCDate(cutoff.getUTCDate() - 59)
+    const oldest = new Map<string, string>()
+    for (const tx of transactions) {
+      if (tx.currency === 'USD') oldest.set(tx.accountId, tx.date)
+    }
+    const fresh = !!updated && Date.now() - Date.parse(updated) <= 48 * 3600_000
+    const covered = [...oldest.values()].every(date => date <= cutoff.toISOString().slice(0, 10))
+    return { transactions, ready: ready && fresh && covered, updated }
   }
-
-  // Map for UI table / list
-  const transactions: TransactionRecord[] = allPlaidTx.map((transaction) => ({
-    id: transaction.transaction_id,
-    created_at: transaction.datetime ?? `${transaction.date}T00:00:00Z`,
-    amount: Number(transaction.amount ?? 0),
-    vendor: transaction.merchant_name ?? transaction.name ?? 'Unknown vendor',
-    category: transaction.personal_finance_category?.primary ?? 'Uncategorized',
-  }))
-
-  // ---- Aggregations for "total amount spend" ----
-
-  const expenseTx = allPlaidTx.filter(isExpense)
-
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-  const monthStartStr = formatDate(monthStart)
-
-  const yearStart = new Date(today.getFullYear(), 0, 1)
-  const yearStartStr = formatDate(yearStart)
-
-  const last30Start = addDays(today, -29)
-  const last30StartStr = formatDate(last30Start)
-
-  const last15Start = addDays(today, -14)
-  const last15StartStr = formatDate(last15Start)
-
-  let totalToday = 0
-  let totalMonthToDate = 0
-  let totalLast30Days = 0
-  let totalYearToDate = 0
-
-  const monthlyMap: Record<string, number> = {} // YYYY-MM -> total
-  const dailyMap: Record<string, number> = {}   // YYYY-MM-DD -> total (for last 15 days)
-
-  for (const tx of expenseTx) {
-    const d: string = tx.date // 'YYYY-MM-DD'
-    const amt: number = tx.amount
-
-    // 1) Range-based totals
-    if (d === todayStr) {
-      totalToday += amt
-    }
-
-    if (isBetween(d, monthStartStr, todayStr)) {
-      totalMonthToDate += amt
-    }
-
-    if (isBetween(d, last30StartStr, todayStr)) {
-      totalLast30Days += amt
-    }
-
-    if (isBetween(d, yearStartStr, todayStr)) {
-      totalYearToDate += amt
-    }
-
-    // 2) Monthly aggregation (for last 6 months chart)
-    const monthKey = d.slice(0, 7) // YYYY-MM
-    monthlyMap[monthKey] = (monthlyMap[monthKey] ?? 0) + amt
-
-    // 3) Daily aggregation (for last 15 days)
-    if (isBetween(d, last15StartStr, todayStr)) {
-      dailyMap[d] = (dailyMap[d] ?? 0) + amt
-    }
-  }
-
-  // Avg monthly cost this year so far
-  const monthsElapsed = today.getMonth() + 1 // Jan=0
-  const avgMonthlyCostYTD =
-    monthsElapsed > 0 ? totalYearToDate / monthsElapsed : 0
-
-  // Monthly totals for last 6 months (oldest -> newest)
-  const monthKeys: string[] = []
-  {
-    let cursor = new Date(today.getFullYear(), today.getMonth(), 1)
-    for (let i = 0; i < 6; i++) {
-      const key = `${cursor.getFullYear()}-${String(
-        cursor.getMonth() + 1,
-      ).padStart(2, '0')}`
-      monthKeys.unshift(key)
-      cursor = addMonths(cursor, -1)
-    }
-  }
-
-  const monthlyTotalsLast6Months = monthKeys.map((month) => ({
-    month,
-    total: monthlyMap[month] ?? 0,
-  }))
-
-  // Daily totals for last 15 days (oldest -> newest)
-  const dayKeys: string[] = []
-  for (let i = 14; i >= 0; i--) {
-    dayKeys.push(formatDate(addDays(today, -i)))
-  }
-
-  const dailyTotalsLast15Days = dayKeys.map((date) => ({
-    date,
-    total: dailyMap[date] ?? 0,
-  }))
-
-  const summary: SpendingSummary = {
-    totalToday,
-    totalMonthToDate,
-    totalLast30Days,
-    totalYearToDate,
-    avgMonthlyCostYTD,
-    monthlyTotalsLast6Months,
-    dailyTotalsLast15Days,
-  }
-
-  return { transactions, summary }
+  throw new Error('Transaction history changed during sync. Refresh to retry.')
 }
-
-export default getTransactions

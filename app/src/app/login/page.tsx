@@ -31,7 +31,6 @@ export default function LoginPage() {
 
       if (signInError) throw signInError
 
-      // Middleware will handle redirect to plaid-connect if needed, otherwise dashboard
       router.push('/dashboard')
       router.refresh()
     } catch (err: unknown) {
