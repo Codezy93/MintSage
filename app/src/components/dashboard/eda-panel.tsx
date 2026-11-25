@@ -208,7 +208,7 @@ export function EdaPanel({ eda, transactions }: Props) {
 
               {eda.forecastSummary && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Forecast mean</span>
+                  <span className="text-muted-foreground">Experimental forecast mean</span>
                   <span className="font-medium">
                     {fmt(eda.forecastSummary.mean)} ({eda.forecastSummary.trend})
                   </span>

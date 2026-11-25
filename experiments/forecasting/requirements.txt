@@ -1,6 +1,4 @@
-pandas
-numpy
-matplotlib
-statsmodels
-torch
-torchvision --index-url https://download.pytorch.org/whl/cu130
+numpy==2.5.5
+matplotlib==3.11.2
+statsmodels==0.15.0
+torch==2.15.0

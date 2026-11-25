@@ -47,7 +47,7 @@ function buildPrompt(eda: ReturnType<typeof runEDA>, question: string): string {
     )
   }
   lines.push('')
-  lines.push('=== FORECAST SUMMARY ===')
+  lines.push('=== EXPERIMENTAL FORECAST SUMMARY (accuracy unvalidated) ===')
   lines.push(`Forecast mean: ${eda.forecastSummary.mean}`)
   lines.push(`Forecast trend: ${eda.forecastSummary.trend}`)
   lines.push('')

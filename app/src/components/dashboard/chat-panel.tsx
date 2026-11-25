@@ -27,7 +27,8 @@ export function ChatPanel({ chat, onAsk, sending }: Props) {
 
   return (
     <div className="flex flex-col h-full gap-3 text-sm">
-      <h2 className="text-sm font-semibold">AI Chat</h2>
+      <h2 className="text-sm font-semibold">Ask Gemini</h2>
+      <p className="text-xs text-muted-foreground">Gemini receives your question and summaries of income, spending, categories, trends, and the experimental forecast. It can explain and suggest actions. It cannot move money.</p>
 
       <form onSubmit={handleSubmit} className="space-y-2">
         <Textarea

@@ -39,7 +39,7 @@ export function ForecastChart({
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold">30-Day Forecast</h2>
+        <h2 className="text-base font-semibold">Experimental 30-day spending estimate</h2>
       </div>
 
       {/* ✅ THIS is the fix: explicit height */}

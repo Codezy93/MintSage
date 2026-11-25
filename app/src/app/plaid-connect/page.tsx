@@ -98,21 +98,20 @@ export default function PlaidConnectPage() {
 
   const { open, ready, error: plaidLinkError } = usePlaidLink(plaidOptions)
 
-  useEffect(() => {
-    if (plaidLinkError) {
-      setError(plaidLinkError.message ?? 'Plaid Link error')
-      setIsConnecting(false)
-      setShouldOpenLink(false)
-    }
-  }, [plaidLinkError])
+  const linkErrorMessage = error ?? plaidLinkError?.message
+  const connecting = isConnecting && !plaidLinkError
 
   useEffect(() => {
-    if (!shouldOpenLink || !ready || !linkToken) return
+    if (plaidLinkError || !shouldOpenLink || !ready || !linkToken) return
     open()
-  }, [linkToken, open, ready, shouldOpenLink])
+  }, [linkToken, open, plaidLinkError, ready, shouldOpenLink])
 
   const handleConnect = useCallback(
     async () => {
+      if (plaidLinkError) {
+        window.location.reload()
+        return
+      }
       setIsConnecting(true)
       setError(null)
 
@@ -128,7 +127,7 @@ export default function PlaidConnectPage() {
         setShouldOpenLink(false)
       }
     },
-    [fetchLinkToken, linkToken],
+    [fetchLinkToken, linkToken, plaidLinkError],
   )
 
   return (
@@ -154,7 +153,7 @@ export default function PlaidConnectPage() {
                 </div>
                 <h1 className="text-2xl font-bold mb-2">Connect your bank account</h1>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                  Link your bank account securely to start tracking your spending and get
+                  Link your bank account through Plaid to start tracking your spending and get
                   personalized insights
                 </p>
               </div>
@@ -169,7 +168,7 @@ export default function PlaidConnectPage() {
                     <div>
                       <h3 className="font-semibold mb-1">Automatic Transaction Tracking</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
-                        All your transactions are automatically imported and categorized
+                        MintSage imports available transactions and their Plaid categories.
                       </p>
                     </div>
                   </div>
@@ -181,9 +180,9 @@ export default function PlaidConnectPage() {
                       <Sparkles className="size-5 text-teal-600 dark:text-teal-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-1">AI-Powered Insights</h3>
+                      <h3 className="font-semibold mb-1">What Gemini receives</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
-                        Get personalized recommendations based on your spending patterns
+                        When dashboard insights load and when you ask a question, the dashboard assistant sends Gemini the question, income and spending totals, category statistics, trends, and an experimental forecast summary.
                       </p>
                     </div>
                   </div>
@@ -195,18 +194,18 @@ export default function PlaidConnectPage() {
                       <Shield className="size-5 text-cyan-600 dark:text-cyan-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-1">Bank-Level Security</h3>
+                      <h3 className="font-semibold mb-1">How forecasts work</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
-                        Your data is encrypted and never shared without your permission
+                        The forecast service receives dates and daily USD spending totals for the last 60 days to estimate the next 30. Forecast accuracy has yet to be validated.
                       </p>
                     </div>
                   </div>
                 </Card>
               </div>
 
-              {error && (
+              {linkErrorMessage && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 mb-4">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">{linkErrorMessage}</p>
                 </div>
               )}
 
@@ -215,10 +214,10 @@ export default function PlaidConnectPage() {
                 <Button
                   onClick={handleConnect}
                   className="w-full bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30"
-                  disabled={isConnecting}
+                  disabled={connecting}
                   size="lg"
                 >
-                  {isConnecting ? (
+                  {connecting ? (
                     <>
                       <Loader2 className="size-4 mr-2 animate-spin" />
                       Connecting...
@@ -233,7 +232,7 @@ export default function PlaidConnectPage() {
               </div>
 
               <p className="text-xs text-center text-muted-foreground mt-6">
-                Powered by Plaid - Trusted by millions of users worldwide
+                MintSage can explain activity and suggest actions. It cannot move money or change external accounts.
               </p>
             </>
           ) : (

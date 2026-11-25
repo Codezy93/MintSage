@@ -11,9 +11,21 @@ its 60-day input / 30-day output contract.
 | `examples/predict_lstm.py` | Saved-model prediction and plotting demo; no test assertions | `test/forecast6.py` |
 | `models/` | Existing state dictionary and TorchScript exports | `models/` |
 | `data/transactions.csv` | Original 45-row sample; not loaded by the scripts or app | `data/transactions.csv` |
-| `requirements.txt` | Original, unpinned Python dependencies | `lib/requirements.txt` |
+| `requirements.txt` | Pinned forecasting dependencies | `lib/requirements.txt` |
 
-From the repository root, in a Python environment with the required packages:
+From the repository root, create a CPU environment and run the examples:
+
+```sh
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -r experiments/forecasting/requirements-cpu.txt
+python -m pip check
+```
+
+The CPU requirements select the CPU PyTorch wheel on Linux and Windows. For the
+default PyTorch distribution, install `experiments/forecasting/requirements.txt`.
+Both examples ran under Linux with Python 3.14. PyTorch warns that legacy
+TorchScript loading may break on Python 3.14 and newer.
 
 ```sh
 python experiments/forecasting/arima.py
@@ -32,6 +44,5 @@ working directory.
 Known limitations are retained for subsequent forecasting work: overlapping
 windows use a random validation split, inputs are not normalized, training
 is not seeded, and saved-model training provenance is undocumented. These
-artifacts are not evidence of forecasting accuracy. Dependency pinning and
-a CPU installation option are also pending. New model exports and deployment
+artifacts are not evidence of forecasting accuracy. New model exports and deployment
 archives are ignored; the two existing model artifacts remain tracked.

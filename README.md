@@ -27,6 +27,29 @@ The web app is independent of the Python experiments. See the
 [experiment notes](experiments/forecasting/README.md) for their entry points
 and limitations.
 
+## Dashboard data sharing
+
+When the dashboard has sufficient USD history, it sends the last 60 dates and
+daily spending totals to the configured forecast service. The 30-day spending
+forecast is experimental and its accuracy has yet to be validated.
+
+After the forecast succeeds, the dashboard assistant automatically asks Gemini
+for an initial analysis. Each chat submission also calls Gemini. The prompt
+contains the question, income, spending, net and average daily net, volatility
+and trend, up to five category names with sums, counts and maxima, and the
+forecast mean and trend. Users can include additional information in their
+question. The dashboard assistant is the only current Gemini caller.
+It can explain findings and suggest actions. It cannot move money or change
+external accounts.
+
+## Agent dependencies
+
+Install the agent packages in a separate Python environment with
+`python -m pip install -r agent_service/requirements.txt`. Configure
+`LANGGRAPH_STRICT_MSGPACK=true` in the agent process when enabling checkpoints.
+The selected backend is PostgreSQL. See the maintainers’ [checkpoint deserialization advisory](https://github.com/langchain-ai/langgraph/security/advisories/GHSA-g48c-2wqr-h844)
+and [SQLite advisory](https://github.com/langchain-ai/langgraph/security/advisories/GHSA-9rwj-6rc7-p77c).
+
 ## Web development
 
 ```sh

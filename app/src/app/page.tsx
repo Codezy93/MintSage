@@ -51,7 +51,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up [animation-delay:300ms]">
             <Button asChild size="lg" className="bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30">
               <Link href="/signup" className="gap-2">
-                Start Free Trial
+                Create an account
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -67,10 +67,10 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">
-              Everything You Need to Master Your Money
+              Explore your spending
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
-              Powerful features designed to give you complete control over your financial future
+              Review activity from linked accounts and ask questions about spending.
             </p>
           </div>
 
@@ -82,7 +82,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Smart Tracking</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Automatically categorize and track all your transactions in real-time
+                See available transactions and categories supplied by Plaid.
               </p>
             </div>
 
@@ -91,9 +91,9 @@ export default function LandingPage() {
               <div className="size-12 rounded-xl bg-linear-to-br from-teal-500 to-cyan-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Brain className="size-6 text-white" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">AI Forecasting</h3>
+              <h3 className="text-lg font-semibold mb-2">Experimental forecast</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Predict spending patterns for the next 30 days and 6 months ahead
+                Explore a 30-day spending estimate based on recent history. Its accuracy has yet to be validated.
               </p>
             </div>
 
@@ -113,9 +113,9 @@ export default function LandingPage() {
               <div className="size-12 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Shield className="size-6 text-white" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Bank-Level Security</h3>
+              <h3 className="text-lg font-semibold mb-2">Read-only account access</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Your financial data is encrypted and protected with industry standards
+                MintSage explains spending and suggests actions. It cannot move money or change your bank accounts.
               </p>
             </div>
           </div>
@@ -132,11 +132,11 @@ export default function LandingPage() {
                 Ready to Take Control of Your Finances?
               </h2>
               <p className="text-lg mb-8 text-emerald-50 max-w-2xl mx-auto text-pretty">
-                Join thousands of users who are already saving more and spending smarter with MintSage
+                Connect an account to see your transaction history and spending summaries.
               </p>
               <Button asChild size="lg" className="bg-white text-emerald-600 hover:bg-emerald-50 shadow-lg">
                 <Link href="/signup" className="gap-2">
-                  Get Started Free
+                  Create an account
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>

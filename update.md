@@ -7,7 +7,7 @@ agent-system steps 24–34, and keeps a mapping back to the original tiered prop
 
 Step 0 is complete. Step 1 has app changes and a database migration, with
 configured integration checks still pending. Checked items below record completed work.
-Steps 2–5 were implemented and verified locally on November 25. Production build,
+Steps 2–7 were implemented and verified locally on November 25. Production build,
 TypeScript, and lint passed. Session and provider checks used fixtures, and migration
 checks used embedded PostgreSQL. Hosted verification and deployment remain open.
 
@@ -165,20 +165,30 @@ was exercised independently pending the agent workflow implementation in step 25
 
 ### Step 6 — Update and pin dependencies
 
-- [ ] Upgrade vulnerable packages and verify compatibility; record remaining audit findings.
-- [ ] Pin Python dependencies and provide a CPU installation option.
-- [ ] Pin LangGraph, its checkpointer, and LangChain integration packages to exact versions.
-  Before pinning, check advisories for the June 2026 LangGraph checkpoint vulnerabilities
+- [x] Upgrade vulnerable packages and verify compatibility; record remaining audit findings.
+- [x] Pin Python dependencies and provide a CPU installation option.
+- [x] Pin LangGraph, its checkpointer, and LangChain integration packages to exact versions.
+  Check published advisories for LangGraph checkpoint vulnerabilities
   (SQL injection in `langgraph-checkpoint-sqlite`; unsafe msgpack deserialization in core)
   and choose patched releases.
-- [ ] Verify clean installation, TypeScript, and production build.
+- [x] Verify clean installation, TypeScript, and production build.
+
+Verified November 25, 2026 on Linux. The original lockfile reported 24 npm audit
+findings (one critical, 15 high, seven moderate, one low). The updated lockfile
+reported zero. Clean npm installation, lint, transaction tests, TypeScript and a
+production build with placeholder configuration passed. The agent and CPU forecasting
+environments passed pip dependency checks and pip-audit for the installed versions
+(using the upstream Torch version for the CPU wheel). Agent imports, saved LSTM
+inference, and the ARIMA example passed. PyTorch issued a legacy TorchScript warning
+on Python 3.14. Direct Python pins and CPU installation instructions are in the
+respective agent and experiment directories.
 
 ### Step 7 — Correct claims and explain data sharing
 
-- [ ] Remove unsupported security, encryption, and user-count claims.
-- [ ] Explain which financial information is sent to Gemini, by which agent, and when.
-- [ ] Label experimental forecasts and avoid unsupported accuracy claims.
-- [ ] State autonomy limits plainly: agents propose and explain; they never move money.
+- [x] Remove unsupported security, encryption, and user-count claims.
+- [x] Explain which financial information is sent to Gemini, by which agent, and when.
+- [x] Label experimental forecasts and avoid unsupported accuracy claims.
+- [x] State autonomy limits plainly: agents propose and explain; they never move money.
 
 ### Step 8 — Implement the forecast service in the repository
 
