@@ -1,0 +1,14 @@
+repos:
+  - repo: local
+    hooks:
+      - id: python-lint
+        name: Ruff
+        entry: ruff check
+        language: system
+        files: ^(agent_service|forecasting)/.*\.py$
+      - id: web-lint
+        name: ESLint
+        entry: npm --prefix app run lint
+        language: system
+        files: ^app/.*\.(m?[jt]sx?)$
+        pass_filenames: false

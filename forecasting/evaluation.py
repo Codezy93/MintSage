@@ -2,6 +2,7 @@
 import argparse
 import json
 from pathlib import Path
+from typing import TypedDict
 
 import numpy as np
 import torch
@@ -10,6 +11,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from torch import nn
 
 from .baselines import Baseline
+from .comparison import compare_losses
 
 MODELS = ("naive", "weekly", "rolling", "arima", "lstm")
 
@@ -79,7 +81,13 @@ def predict(name, train, cfg):
     return Baseline(name, cfg["rolling_days"]).fit(train).predict(cfg["horizon"])
 
 
-def metrics(train, actual, predictions):
+class FoldLoss(TypedDict):
+    mae: float
+    mse: float
+    mase: float | None
+
+
+def metrics(train, actual, predictions) -> FoldLoss:
     errors = actual - predictions
     mae = float(np.abs(errors).mean())
     scale = float(np.abs(train[7:] - train[:-7]).mean())
@@ -88,7 +96,7 @@ def metrics(train, actual, predictions):
 
 def compare(cfg, phase):
     series = synthetic(cfg["days"], cfg["seed"])
-    scores = {name: [] for name in MODELS}
+    scores: dict[str, list[FoldLoss]] = {name: [] for name in MODELS}
     for index, (train, actual) in enumerate(folds(series, cfg)):
         if (index < cfg["validation_folds"]) != (phase == "validation"):
             continue
@@ -105,7 +113,15 @@ def compare(cfg, phase):
                         "rmse": np.sqrt(np.mean([r["mse"] for r in rows])),
                         "mase": np.mean(scaled) if scaled else None,
                         "scaled_folds": len(scaled), "folds": len(rows)}
-    return result
+    contrasts = {}
+    if phase == "final":
+        baseline = [row["mae"] for row in scores["naive"]]
+        for name in MODELS[1:]:
+            contrasts[name] = compare_losses(
+                [row["mae"] for row in scores[name]], baseline,
+                horizon=cfg["horizon"], stride=cfg["horizon"], seed=cfg["seed"],
+            )
+    return result, contrasts
 
 
 def main():
@@ -118,14 +134,14 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     selection = args.output / "selection.json"
     if args.command == "train":
-        results = compare(cfg, "validation")
+        results, _ = compare(cfg, "validation")
         selected = min(results, key=lambda model: results[model]["mae"])
         selection.write_text(json.dumps({"config": cfg, "selected": selected, "validation": results}, indent=2))
     else:
         record = json.loads(selection.read_text())
         if record["config"] != cfg:
             raise ValueError("Retrain after changing the configuration")
-        record["final"] = compare(cfg, "final")
+        record["final"], record["comparisons"] = compare(cfg, "final")
         (args.output / "results.json").write_text(json.dumps(record, indent=2))
         print(json.dumps(record))
 

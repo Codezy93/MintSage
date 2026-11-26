@@ -46,3 +46,37 @@ Each fit emits a JSON log line with its origin and scores. Training writes the
 selection and validation metrics to `build/forecasting/selection.json`. Evaluation
 writes the full comparison to `build/forecasting/results.json`. Repeated CPU runs
 produced byte-identical results in the tested environment.
+
+## Uncertainty on the four final forecast origins
+
+Each comparison pairs the candidate and last-value baseline on the same 30
+target days and subtracts their per-origin MAEs. Negative values indicate
+lower observed loss. Values below are USD per forecast day.
+
+| Candidate | Mean difference | Nominal 95% block-bootstrap interval | DM statistic | Two-sided asymptotic p |
+| --- | ---: | ---: | ---: | ---: |
+| Weekly seasonal naive | −1.64 | [−2.34, −0.94] | −3.46 | 0.00055 |
+| Rolling mean | −5.58 | [−11.36, 0.20] | −1.77 | 0.077 |
+| ARIMA | −7.04 | [−14.28, 0.19] | −1.73 | 0.084 |
+| LSTM | −6.59 | [−13.04, −0.14] | −1.82 | 0.069 |
+
+The evaluation advances 30 days per origin, so final target windows do not
+overlap. Keeping each entire forecast together preserves within-horizon
+dependence. For 10,000 seeded circular bootstrap draws, adjacent pairs of
+origins are resampled together. The percentile endpoints reflect only the four
+observed origins. The comparison code increases the minimum block to the number
+of origins a horizon spans when the stride is shorter. It suppresses inference
+when fewer than two blocks fit.
+
+The Diebold–Mariano statistic divides the mean paired loss difference by its
+estimated standard error using Bartlett-weighted autocovariances through lag
+one (block length minus one). Its normal reference distribution assumes a
+weakly stationary, weakly dependent loss differential with positive long-run
+variance and enough forecast origins. A degenerate variance gives no statistic
+or p-value. See [Diebold and Mariano](https://doi.org/10.1080/07350015.1995.10524599).
+
+Four origins give little information about dependence or tail probabilities.
+The rolling and ARIMA intervals include zero. The LSTM interval and asymptotic
+test disagree at the 5% level. Even the small weekly p-value is unreliable at
+this sample size. These four exploratory, unadjusted comparisons do not
+establish superiority on future spending.

@@ -41,7 +41,7 @@ export default function SignupPage() {
         options: {
           emailRedirectTo:
             process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/plaid-connect`,
+            `${window.location.origin}/auth/confirm`,
           data: {
             name: formData.name,
             phone: formData.phone,
@@ -51,10 +51,7 @@ export default function SignupPage() {
 
       if (signUpError) throw signUpError
 
-      const { error } = await supabase.from('users').insert({ id: data.user?.id, phone: formData.phone , name: formData.name});
-      if (error) throw error
-      
-      router.push('/verification')
+      router.push(data.session ? '/plaid-connect' : '/verification')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

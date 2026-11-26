@@ -1,22 +1,7 @@
-'use client'
-
-import { useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 
 export default function VerificationPage() {
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-
-  useEffect(() => {
-    // Focus first input on mount
-    inputRefs.current[0]?.focus()
-  }, [])
-
-  const handleResend = async () => {
-    // Simulate resend
-    await new Promise(resolve => setTimeout(resolve, 500))
-  }
-
   return (
     <div className="min-h-screen bg-linear-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950 dark:via-teal-950 dark:to-cyan-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -33,17 +18,11 @@ export default function VerificationPage() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold mb-2">Verify your email</h1>
             <p className="text-sm text-muted-foreground">
-              We&apos;ve sent a verification link code to your email
+              Open the confirmation link in your email using the browser where you signed up.
             </p>
           </div>
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Didn&apos;t receive the code?{' '}
-            <button
-              onClick={handleResend}
-              className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
-            >
-              Resend
-            </button>
+            <Link href="/login" className="text-emerald-600 font-medium">Return to login</Link>
           </div>
         </div>
       </div>

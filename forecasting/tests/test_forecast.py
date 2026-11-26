@@ -1,9 +1,9 @@
+import asyncio
 from datetime import date, timedelta
 
+import httpx
 import numpy as np
 import pytest
-import asyncio
-import httpx
 from pydantic import ValidationError
 
 from forecasting.contract import History, project

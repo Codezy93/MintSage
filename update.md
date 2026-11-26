@@ -11,6 +11,8 @@ Steps 2–10 were implemented and verified locally on November 25. Production bu
 TypeScript, and lint passed. Session and provider checks used fixtures, and migration
 checks used embedded PostgreSQL. Hosted verification and deployment remain open.
 
+Steps 11–13 are implemented. Step 14 has local verification evidence and open hosted acceptance checks.
+
 ## What changed in this revision
 
 - MintSage becomes an **agent-first product**: agents run workflows end to end and the
@@ -229,38 +231,44 @@ Synthetic results and reproduction commands are in [forecasting/README.md](forec
 
 ### Step 11 — Quantify uncertainty in model comparisons
 
-- [ ] Add block-bootstrap confidence intervals for loss differences against the naive baseline.
-- [ ] Add a Diebold–Mariano comparison with assumptions and sample-size limitations documented.
-- [ ] Account for serial dependence and overlapping forecast horizons.
-- [ ] Report negative or inconclusive results without implying a model beats the baseline.
+- [x] Add block-bootstrap confidence intervals for loss differences against the naive baseline.
+- [x] Add a Diebold–Mariano comparison with assumptions and sample-size limitations documented.
+- [x] Account for serial dependence and overlapping forecast horizons.
+- [x] Report negative or inconclusive results without implying a model beats the baseline.
 
 ### Step 12 — Automate verification
 
-- [ ] Add GitHub Actions for lint, TypeScript, Vitest, ruff, mypy, and pytest.
-- [ ] Run the agent evaluation suite (step 33) with mocked LLM responses in CI; run the
+- [x] Add GitHub Actions for lint, TypeScript, Vitest, ruff, mypy, and pytest.
+- [x] Run the agent evaluation suite (step 33) with mocked LLM responses in CI; run the
   live-LLM version manually or on a schedule, since it costs money and is nondeterministic.
-- [ ] Add pre-commit hooks; ensure ordinary checks require no production credentials.
+- [x] Add pre-commit hooks; ensure ordinary checks require no production credentials.
+
+The workflows discover tests in the agent suite directory. Current scenarios cover the forecast tool. Step 33 adds the broader suite. Hosted workflow execution remains pending.
 
 ### Step 13 — Complete documentation and artifact hygiene
 
-- [ ] Expand the README with the architecture thesis, agent graph diagram, setup,
+- [x] Expand the README with the architecture thesis, agent graph diagram, setup,
   environment variables, commands, and honest status.
-- [ ] Add `docs/model_card.md` covering provenance, assumptions, evaluation, and failure modes.
-- [ ] Add `docs/agent_card.md` covering agents, tools, triggers, autonomy levels, data sent
+- [x] Add `docs/model_card.md` covering provenance, assumptions, evaluation, and failure modes.
+- [x] Add `docs/agent_card.md` covering agents, tools, triggers, autonomy levels, data sent
   to the LLM, known failure modes, and evaluation results.
 - [x] Remove deployment archives from the current tree and ignore generated bundles.
 - [x] Credit generated Next.js scaffolding and shadcn/ui components.
-- [ ] Document deployment and database migration procedures once implemented.
+- [x] Document deployment and database migration procedures once implemented.
 
 Git history rewriting or force-pushing requires separate explicit approval.
 
 ### Step 14 — Verify the engineering foundation
 
-- [ ] Reproduce installation and checks from a fresh checkout.
+- [x] Reproduce installation and checks from a fresh checkout.
 - [ ] Exercise signup, linking, dashboard, forecasting, analysis, and agent runs with configured services.
 - [ ] Verify tokens never reach the browser and authorization boundaries hold, including
   inside agent tool calls.
-- [ ] Record checks requiring external credentials separately from checks actually performed.
+- [x] Record checks requiring external credentials separately from checks actually performed.
+
+Local token, database-role and tool-authorization checks passed with fixtures.
+Hosted provider and browser checks remain open. The current agent check can run
+against Gemini with the forecasting tool. See [foundation verification](docs/foundation-verification.md).
 
 ## Personal-finance expansion (engines become agent tools)
 

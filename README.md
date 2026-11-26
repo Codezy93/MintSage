@@ -129,3 +129,71 @@ The unused standalone `/chat` route was removed; dashboard chat remains.
 Unused deployment ZIPs were removed from the working tree. Previous versions
 remain in Git history, which has not been rewritten. Next.js scaffolding and
 the components in `app/src/components/ui/` include generated code.
+
+## Architecture and delivery status
+
+Application code computes financial figures. The agent design assigns workflow
+selection to a supervisor, numeric checking to a verifier, and approval of
+internal changes to the user. Solid arrows show implemented paths. Dotted arrows
+show planned orchestration.
+
+```mermaid
+flowchart LR
+  Plaid --> Sync[Server transaction sync]
+  Sync --> DB[(Private Supabase storage)]
+  DB --> Dashboard
+  Dashboard --> Forecast[Python forecast API]
+  Dashboard --> Analysis[Analysis route] --> Gemini
+  Supervisor -.-> Specialists -.-> Tool[User-scoped forecast tool]
+  Tool --> Baseline[Weekly baseline]
+  Forecast --> Baseline
+  Specialists -.-> Verifier -.-> Inbox -.-> Approval[User approval]
+```
+
+The dashboard uses the forecast API directly. The Python forecast tool is
+available for future agent runs. Read the [model card](docs/model_card.md),
+[agent card](docs/agent_card.md), [foundation verification record](docs/foundation-verification.md)
+and [current step status](update.md).
+
+### Environment and deployment
+
+| Variables | Consumer and purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URI`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser and Next.js clients use the same Supabase project and public key. |
+| `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` | Optional full signup callback URL. Allowlist the app's `/auth/confirm` URL in Supabase Auth. |
+| `SUPABASE_SECRET_KEY` | Server-side token and transaction storage. |
+| `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV` | Server-side Plaid API client. Use sandbox for staging. |
+| `PLAID_PRODUCTS`, `PLAID_REDIRECT_URI` | Comma-separated Link products and optional registered OAuth redirect. |
+| `GEMINI_API_KEY` | Server-side dashboard analysis. The optional live CI job maps its GitHub secret to the Google client environment. |
+| `FORECAST_URL`, `AGENT_SERVICE_SECRET` | Forecast endpoint and shared credential. Set the credential on both services. |
+| `AGENT_SERVICE_URL` | Reserved HTTPS endpoint for future agent workflows. |
+
+1. Provision Supabase and configure email confirmation and allowed redirect URLs.
+   Use the same origin for signup and its callback so the PKCE verifier is available.
+2. For a fresh project, run `database/schema/users.sql` and
+   `database/schema/plaid_tokens.sql` as the database administrator. For an
+   existing project, confirm which schema changes have already been applied.
+3. Take a database backup. In a maintenance window apply *pending*
+   `database/migrations/*.sql` in filename order, one transaction per file.
+   Record each successful filename in deployment history. The first migration
+   revokes legacy token access, the second initializes sync state and events,
+   and the third creates profiles during signup, backfills missing profiles and
+   enables profile RLS. Pair the third migration with the updated signup page.
+4. Deploy the forecast service using the factory command above behind HTTPS.
+   Configure Next.js with its URL and shared credential, then build and start
+   the app with `npm ci && npm run build && npm start` from `app/`.
+5. Complete the staging checks in the verification record before promoting.
+   If a migration fails, inspect the failed transaction before retrying.
+   Coordinate database and app restoration if reverting across schema versions.
+
+### Automated checks
+
+Use Python 3.14 and Node 26 to reproduce the local checks. From the repository
+root, activate a virtual environment and install `requirements-dev.txt`. Run
+`ruff check forecasting agent_service`, `mypy forecasting agent_service`, and
+`python -m pytest -q forecasting/tests agent_service/tests`. From `app/`, run
+`npm ci`, `npm run lint`, `npx tsc --noEmit`, and `npm test`.
+Install the local hooks with `pre-commit install` in the activated environment.
+GitHub Actions runs these checks and a placeholder production build on pushes
+and pull requests. Dispatch **Live agent tool evaluation** in Actions to exercise
+Gemini on synthetic histories with a configured repository secret.

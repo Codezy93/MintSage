@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from agent_service.auth import ServiceAuthentication
+
 from .contract import History, Projection, project
 
 
