@@ -1,115 +1,34 @@
-import { verifiedUser } from '@/lib/supabase/verified-user'
-// app/api/forecast/route.ts
 import { NextResponse } from 'next/server'
-
-const FORECAST_URL = process.env.FORECAST_URL
-
-// helper: Date -> "YYYY-MM-DD"
-function toDateKey(date: Date) {
-  const y = date.getUTCFullYear()
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(date.getUTCDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-function computeHorizonDates(user_dates: string[], horizon: number) {
-  const lastDateStr = user_dates[user_dates.length - 1]
-  const lastDate = new Date(lastDateStr)
-  lastDate.setUTCHours(0, 0, 0, 0)
-
-  const horizon_dates: string[] = []
-  for (let i = 1; i <= horizon; i++) {
-    const d = new Date(lastDate)
-    d.setUTCDate(lastDate.getUTCDate() + i)
-    horizon_dates.push(toDateKey(d))
-  }
-  return horizon_dates
-}
+import { verifiedUser } from '@/lib/supabase/verified-user'
+import { forecastRequest, nextDay, projection } from '@/lib/transactions/contracts'
 
 export async function POST(req: Request) {
+  const user = await verifiedUser()
+  if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  const parsed = forecastRequest.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Expected 60 consecutive days of USD spending' }, { status: 400 })
+  }
+  const endpoint = URL.parse(process.env.FORECAST_URL || 'http://127.0.0.1:8000/forecast')
+  if (!endpoint) return NextResponse.json({ error: 'Invalid forecast endpoint' }, { status: 503 })
+  const secret = process.env.AGENT_SERVICE_SECRET
+  const local = endpoint.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname)
+  if (!secret || (!local && endpoint.protocol !== 'https:')) {
+    return NextResponse.json({ error: 'Forecast service configuration unavailable' }, { status: 503 })
+  }
+  const signal = AbortSignal.timeout(8000)
   try {
-    if (!await verifiedUser()) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    if (!FORECAST_URL) {
-      return NextResponse.json(
-        { error: 'FORECAST_URL is not set on the server.' },
-        { status: 500 },
-      )
-    }
-
-    const body = (await req.json())
-
-    if (
-      !Array.isArray(body.user_expenses) ||
-      !Array.isArray(body.user_dates) ||
-      body.user_expenses.length !== body.user_dates.length ||
-      body.user_expenses.length === 0
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            'user_expenses and user_dates must be non-empty arrays of equal length',
-        },
-        { status: 400 },
-      )
-    }
-
-    const { user_expenses, user_dates } = body
-    const horizon = 30
-    const horizon_dates = computeHorizonDates(user_dates, horizon)
-
-    // ✅ call external forecast service (NO fallback)
-    const externalRes = await fetch(FORECAST_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_expenses, user_dates }),
+    const res = await fetch(endpoint, {
+      method: 'POST', redirect: 'error', cache: 'no-store', signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}`, 'X-MintSage-User': user.id },
+      body: JSON.stringify(parsed.data),
     })
-
-    if (!externalRes.ok || !externalRes.headers.get('content-type')?.includes('application/json')) {
-      return NextResponse.json({ error: 'Forecast service unavailable' }, { status: 502 })
-    }
-    const raw = await externalRes.json()
-
-    // ✅ normalize forecast array (still required because external could wrap it)
-    // normalize forecast array
-    let forecast: unknown[] | null = null
-
-    if (Array.isArray(raw)) forecast = raw
-    else if (Array.isArray(raw?.body)) forecast = raw.body           // ✅ ADD THIS
-    else if (Array.isArray(raw?.forecast)) forecast = raw.forecast
-    else if (Array.isArray(raw?.values)) forecast = raw.values
-    else if (Array.isArray(raw?.predictions)) forecast = raw.predictions
-
-    if (!forecast) {
-      return NextResponse.json(
-        { error: 'Forecast response JSON did not include a forecast array.' },
-        { status: 502 },
-      )
-    }
-
-    // ensure numeric
-    const cleaned = forecast
-      .map((x) => Number(x))
-      .filter(Number.isFinite)
-
-    if (cleaned.length === 0) {
-      return NextResponse.json(
-        { error: 'Forecast array contained no numeric values.' },
-        { status: 502 },
-      )
-    }
-
-    return NextResponse.json(
-      {
-        forecast: cleaned,               // ✅ now populated
-        horizon_dates,
-        input: { user_expenses, user_dates },
-      },
-      { status: 200 },
-    )
+    if (!res.ok) throw new Error('Service unavailable')
+    const output = projection.parse(await res.json())
+    if (!nextDay(parsed.data.user_dates[59], output.horizon_dates[0])) throw new Error('Misaligned horizon')
+    return NextResponse.json({ ...output, input: parsed.data })
   } catch {
-    return NextResponse.json(
-      { error: 'Unexpected error in /api/forecast.' },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: signal.aborted ? 'Forecast timed out' : 'Forecast service unavailable' },
+      { status: signal.aborted ? 504 : 502 })
   }
 }

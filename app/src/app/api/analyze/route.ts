@@ -4,13 +4,8 @@ import { NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 
 import { runEDA } from '@/lib/transactions/analysis'
-import type { TransactionRecord } from '@/types/transactions'
-
-type AnalyzeRequestBody = {
-  transactions: TransactionRecord[]
-  forecast: number[]
-  question: string
-}
+import { analysisRequest } from '@/lib/transactions/contracts'
+import { z } from 'zod'
 
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY
@@ -48,8 +43,12 @@ function buildPrompt(eda: ReturnType<typeof runEDA>, question: string): string {
   }
   lines.push('')
   lines.push('=== EXPERIMENTAL FORECAST SUMMARY (accuracy unvalidated) ===')
-  lines.push(`Forecast mean: ${eda.forecastSummary.mean}`)
-  lines.push(`Forecast trend: ${eda.forecastSummary.trend}`)
+  if (eda.forecastSummary) {
+    lines.push(`Forecast mean: ${eda.forecastSummary.mean}`)
+    lines.push(`Forecast trend: ${eda.forecastSummary.trend}`)
+  } else {
+    lines.push('Forecast unavailable.')
+  }
   lines.push('')
   lines.push('=== USER QUESTION ===')
   lines.push(question)
@@ -74,30 +73,10 @@ export async function POST(req: Request) {
       )
     }
 
-    const body = (await req.json()) as AnalyzeRequestBody
-
-    if (
-      !Array.isArray(body.transactions) ||
-      body.transactions.length === 0
-    ) {
-      return NextResponse.json(
-        { error: 'transactions array is required and non-empty' },
-        { status: 400 },
-      )
-    }
-
-    const forecastArray = Array.isArray(body.forecast)
-      ? body.forecast
-      : []
-
-    if (!body.question || typeof body.question !== 'string') {
-      return NextResponse.json(
-        { error: 'question is required' },
-        { status: 400 },
-      )
-    }
-
-    const eda = runEDA(body.transactions, forecastArray)
+    const parsed = analysisRequest.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid analysis request' }, { status: 400 })
+    const body = parsed.data
+    const eda = runEDA(body.transactions, body.forecast)
     const prompt = buildPrompt(eda, body.question)
 
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY })
@@ -106,7 +85,9 @@ export async function POST(req: Request) {
       contents: prompt,
     })
 
-    const answer = response.text ?? ''
+    const result = z.string().trim().min(1).safeParse(response.text)
+    if (!result.success) return NextResponse.json({ error: 'Analysis unavailable' }, { status: 502 })
+    const answer = result.data
 
     return NextResponse.json({ eda, answer })
   } catch (e: unknown) {

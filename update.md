@@ -7,7 +7,7 @@ agent-system steps 24–34, and keeps a mapping back to the original tiered prop
 
 Step 0 is complete. Step 1 has app changes and a database migration, with
 configured integration checks still pending. Checked items below record completed work.
-Steps 2–7 were implemented and verified locally on November 25. Production build,
+Steps 2–10 were implemented and verified locally on November 25. Production build,
 TypeScript, and lint passed. Session and provider checks used fixtures, and migration
 checks used embedded PostgreSQL. Hosted verification and deployment remain open.
 
@@ -192,38 +192,40 @@ respective agent and experiment directories.
 
 ### Step 8 — Implement the forecast service in the repository
 
-- [ ] Create a typed `forecasting/` Python package with fit/predict interfaces and a
+- [x] Create a typed `forecasting/` Python package with fit/predict interfaces and a
   serving endpoint.
-- [ ] Define and validate the existing 60-day input / 30-day output contract, including
+- [x] Define and validate the existing 60-day input / 30-day output contract, including
   dates, currency, data sufficiency, and error responses.
-- [ ] Start with reproducible baselines; connect Next.js to the in-repository service.
-- [ ] Handle timeouts and unavailable forecasts explicitly.
-- [ ] Keep the historical experiments distinguishable from the serving implementation.
-- [ ] Expose the forecast as an agent tool (step 24).
+- [x] Start with reproducible baselines; connect Next.js to the in-repository service.
+- [x] Handle timeouts and unavailable forecasts explicitly.
+- [x] Keep the historical experiments distinguishable from the serving implementation.
+- [x] Expose the forecast as an agent tool (step 24).
 
-Serving choice: the agent system needs a long-running service with persistent state,
-so FastAPI is the proposed host for both the forecast endpoint and the agent service.
-This is a proposal pending confirmation, not a recorded decision.
+The forecast endpoint uses FastAPI with the existing service authentication
+middleware. The production model is weekly seasonal naive. The typed forecast
+tool binds the authenticated user and history loader outside the model arguments.
 
 ### Step 9 — Validate inputs and add focused tests
 
-- [ ] Extract aggregation and EDA into pure TypeScript modules.
-- [ ] Add Zod validation for API requests and downstream responses.
-- [ ] Add Vitest tests for dates, financial aggregation, authorization, and service failures.
-- [ ] Add pytest tests for windowing, leakage prevention, shapes, and service contracts.
-- [ ] Replace remaining `any` types and fix lint errors.
+- [x] Extract aggregation and EDA into pure TypeScript modules.
+- [x] Add Zod validation for API requests and downstream responses.
+- [x] Add Vitest tests for dates, financial aggregation, authorization, and service failures.
+- [x] Add pytest tests for windowing, leakage prevention, shapes, and service contracts.
+- [x] Replace remaining `any` types and fix lint errors.
 
 ### Step 10 — Build reproducible forecasting evaluation
 
-- [ ] Add documented, seeded synthetic data with weekly patterns, paydays, and heavy-tailed purchases.
-- [ ] Compare naive, weekly seasonal-naive, rolling mean, ARIMA, and LSTM forecasts.
-- [ ] Use expanding-window, walk-forward evaluation with training-only preprocessing
+- [x] Add documented, seeded synthetic data with weekly patterns, paydays, and heavy-tailed purchases.
+- [x] Compare naive, weekly seasonal-naive, rolling mean, ARIMA, and LSTM forecasts.
+- [x] Use expanding-window, walk-forward evaluation with training-only preprocessing
   and model selection separated from the final evaluation period.
-- [ ] Report MAE, RMSE, and MASE, handling zero denominators explicitly; explain why
+- [x] Report MAE, RMSE, and MASE, handling zero denominators explicitly; explain why
   MAPE is unsuitable for zero-spending days.
-- [ ] Add YAML configuration files, fixed seeds, structured logs, and `make train` / `make eval` commands.
-- [ ] Publish reproducible results as synthetic-data results. The 45 sample transactions
+- [x] Add YAML configuration files, fixed seeds, structured logs, and `make train` / `make eval` commands.
+- [x] Publish reproducible results as synthetic-data results. The 45 sample transactions
   cannot establish predictive performance; a public dataset is an optional later choice.
+
+Synthetic results and reproduction commands are in [forecasting/README.md](forecasting/README.md).
 
 ### Step 11 — Quantify uncertainty in model comparisons
 
@@ -614,5 +616,5 @@ Agent-system boundaries:
 
 Proposed, pending confirmation:
 
-- FastAPI as the host for the agent service and forecast endpoint.
+- FastAPI as the host for the future agent graph. The forecast endpoint uses FastAPI.
 - LangSmith or Langfuse for tracing.

@@ -124,10 +124,10 @@ export function runEDA(transactions: TransactionRecord[], forecast: number[]) {
     },
     daily,
     categoryStats,
-    forecastSummary: {
+    forecastSummary: forecast.length ? {
       mean: forecastMean,
       trend: forecastTrend,
-    },
+    } : null,
   }
 }
 

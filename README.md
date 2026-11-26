@@ -2,8 +2,7 @@
 
 Personal-finance prototype built with Next.js, Supabase, Plaid, and Gemini.
 The web app includes authentication, bank linking, a transaction dashboard,
-and spending analysis. Forecast requests currently depend on an external
-service whose implementation is not in this repository.
+and spending analysis. The dashboard calls the Python forecast service in this repository.
 
 See the [implementation roadmap](docs/roadmap.md) for the original engineering
 upgrade plan, completed cleanup, and planned personal-finance features.
@@ -17,6 +16,7 @@ app/                         Next.js web app and API routes
   src/components/ui/         Shared shadcn/ui components
   src/lib/                   Supabase, Plaid, and transaction helpers
   src/types/                 Shared transaction type
+forecasting/                 Forecast API, baselines, and synthetic evaluation
 database/schema/             Original Supabase table and policy definitions
 database/migrations/         SQL changes applied after the existing schema
 docs/                        Implementation roadmap and project documentation
@@ -26,6 +26,29 @@ experiments/forecasting/      Offline Python experiments, models, and sample dat
 The web app is independent of the Python experiments. See the
 [experiment notes](experiments/forecasting/README.md) for their entry points
 and limitations.
+
+## Forecast service
+
+From the repository root, install `forecasting/requirements.txt` into a Python
+virtual environment. Set the same private `AGENT_SERVICE_SECRET` in the Python
+process and the Next.js server, then start the service:
+
+```sh
+python -m uvicorn forecasting.service:create_app --factory --host 127.0.0.1 --port 8000
+```
+
+Next.js defaults to `http://127.0.0.1:8000/forecast`. Set `FORECAST_URL` to
+an HTTPS endpoint when deploying the services on separate hosts. The authenticated
+dashboard sends 60 consecutive UTC dates, one observed net spending amount per
+day, and USD. Confirmed zero-spending days and negative refund totals are valid.
+Missing days block prediction. The service returns the next 30 dates and estimates
+by repeating the last seven days. The dashboard checks the dates and amounts and
+reports a service failure or eight-second timeout. The agent tool accepts a
+session-bound history loader when the agent graph is assembled.
+
+The [synthetic evaluation](forecasting/README.md) includes reproduction commands,
+model selection and held-out results. Historical experiments remain under
+`experiments/forecasting/`.
 
 ## Dashboard data sharing
 
@@ -97,7 +120,7 @@ Local checks, from `app/`:
 
 ```sh
 npx tsc --noEmit
-node --test tests/transactions.test.mjs  # Node 22.18+
+npm test
 npm run lint
 npm run build
 ```

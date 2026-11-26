@@ -1,0 +1,10 @@
+seed: 1701
+days: 420
+horizon: 30
+initial_train: 180
+validation_folds: 4
+rolling_days: 14
+arima_order: [1, 0, 1]
+lstm_window: 14
+lstm_hidden: 12
+lstm_epochs: 35

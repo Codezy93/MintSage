@@ -3,7 +3,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { SpendingAnalysis } from '@/lib/transactions/analysis'
-import { countsAsSpending, type TransactionRecord } from '@/types/transactions'
+import { projection } from '@/lib/transactions/contracts'
+import { buildLast60Days } from '@/lib/transactions/aggregation'
+import type { TransactionRecord } from '@/types/transactions'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ForecastChart } from './forecast-chart'
@@ -20,22 +22,6 @@ type Props = {
 
 const INITIAL_QUESTION =
   'What are good things and bad things in the transaction history?'
-
-function buildLast60Days(transactions: TransactionRecord[]) {
-  const today = new Date()
-  const daily = new Map<string, number>()
-  for (let offset = 59; offset >= 0; offset--) {
-    const day = new Date(today)
-    day.setUTCDate(today.getUTCDate() - offset)
-    daily.set(day.toISOString().slice(0, 10), 0)
-  }
-  for (const tx of transactions) {
-    if (countsAsSpending(tx) && daily.has(tx.date)) {
-      daily.set(tx.date, daily.get(tx.date)! + tx.amount)
-    }
-  }
-  return { user_dates: [...daily.keys()], user_expenses: [...daily.values()] }
-}
 
 export function DashboardShell({ initialTransactions, historyReady }: Props) {
   const [forecast, setForecast] = useState<number[]>([])
@@ -63,12 +49,15 @@ export function DashboardShell({ initialTransactions, historyReady }: Props) {
       try {
         setLoading(true)
         setError(null)
+        setForecast([])
+        setHorizonDates([])
 
         // 1️⃣ Forecast
         const fRes = await fetch('/api/forecast', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            currency: 'USD',
             user_expenses: last60.user_expenses,
             user_dates: last60.user_dates,
           }),
@@ -76,12 +65,11 @@ export function DashboardShell({ initialTransactions, historyReady }: Props) {
         const fJson = await fRes.json()
         if (!fRes.ok) throw new Error(fJson.error || 'Forecast unavailable')
 
-        const fArray: number[] = Array.isArray(fJson.forecast)
-          ? fJson.forecast
-          : []
-
+        const predicted = projection.safeParse(fJson)
+        if (!predicted.success) throw new Error('Invalid forecast response')
+        const fArray = predicted.data.forecast
         setForecast(fArray)
-        setHorizonDates(fJson.horizon_dates ?? [])
+        setHorizonDates(predicted.data.horizon_dates)
 
         // 2️⃣ EDA + init chat
         const aRes = await fetch('/api/analyze', {

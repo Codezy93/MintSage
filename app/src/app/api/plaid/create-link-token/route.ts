@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import {
     CountryCode,
@@ -39,7 +40,7 @@ export async function POST() {
             })
             .then((res) => res.data);
 
-        return NextResponse.json({ link_token: plaidResponse.link_token });
+        return NextResponse.json(z.object({ link_token: z.string().min(1) }).parse(plaidResponse));
     } catch {
         console.error('Failed to create Plaid link token');
         return NextResponse.json(
