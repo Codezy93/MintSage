@@ -7,7 +7,7 @@ const fixture = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/verified-user', () => ({ verifiedUser: async () => ({ id: 'alice' }) }))
 vi.mock('@/lib/supabase/private', () => ({ privateClient: () => ({
-  from: () => ({ select: () => ({ eq: fixture.read }) }), rpc: fixture.commit,
+  from: () => ({ update: () => ({ eq: () => ({ eq: () => ({ eq: async () => ({error:null}) }) }) }), select: () => ({ eq: fixture.read }) }), rpc: fixture.commit,
 }) }))
 vi.mock('@/lib/plaid/config', () => ({ plaidClient: { transactionsSync: fixture.sync, itemGet: fixture.item } }))
 

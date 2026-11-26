@@ -23,6 +23,7 @@ test('migrations retain existing profiles, create signup profiles, and isolate b
     await apply('migrations/202611220001_secure_plaid_tokens.sql')
     await apply('migrations/202611250001_transaction_sync.sql')
     await apply('migrations/202611260001_secure_signup_profiles.sql')
+    await apply('migrations/202611260002_finance_planning.sql')
     await db.query('insert into auth.users values ($1, $2)', [bob, { name: 'Bob' }])
     await db.query('insert into public.plaid_tokens(id,token) values ($1,$3),($2,$3)', [alice,bob,'fixture'])
     for (const role of ['anon', 'authenticated']) {
@@ -31,6 +32,9 @@ test('migrations retain existing profiles, create signup profiles, and isolate b
       for (const owner of [alice,bob]) {
         await assert.rejects(db.query('select token from plaid_tokens where id=$1',[owner]), { code: '42501' })
         await assert.rejects(db.query("update plaid_tokens set token='example' where id=$1",[owner]), { code: '42501' })
+      }
+      for (const table of ['finance_plans','finance_snapshots','finance_events']) {
+        await assert.rejects(db.query('select * from '+table), { code: '42501' })
       }
       if (role === 'anon') {
         await assert.rejects(db.exec('select * from public.users'), { code: '42501' })

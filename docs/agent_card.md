@@ -4,6 +4,8 @@
 | --- | --- | --- |
 | Dashboard assistant | After a successful dashboard forecast, then on each submitted question. Gemini receives the question, income, spending, net totals, average daily net, volatility and trend, statistics for up to five categories, and forecast mean and trend when available. | Explains calculated summaries and suggests actions. No write tools. |
 | Forecast tool | A trusted caller binds a verified user UUID and a history loader before giving the tool to a model. It takes no model-generated arguments. | Returns the deterministic forecast, ledger ID, source references and assumption. Its own computation makes no Gemini call. |
+| Planning tools and chat | The trusted caller binds the verified owner. The planner computes spending, budgets, runway, goals, subscriptions and hypothetical outcomes. | The two supported spending-change and pre-payday purchase questions return calculated evidence directly. Tool calls are read-only. |
+| Anomaly investigator | On requested review, Gemini receives candidate indices, flag types, dates and amounts. | Selects candidates for human review. The planner displays the underlying computed evidence. |
 | Planned specialist graph | Sync events, schedules, thresholds and chat are planned triggers. | Supervisor, verifier, approvals, checkpoint recovery and proactive inbox delivery are roadmap items. |
 
 The HTTP service checks a shared credential and user UUID. The history loader

@@ -87,6 +87,8 @@ Rename any older `NEXT_PUBLIC_PLAID_*`, `NEXT_PUBLIC_GEMINI_API_KEY`, and
 Rotate previously exposed secrets when deploying the change.
 Next.js registers the session proxy from `app/src/proxy.ts`.
 
+The [financial planning guide](docs/financial-planning.md) covers manual accounts, optional Plaid products, cash projections and local calibration results.
+
 Apply database migrations in filename order before deploying the app.
 The transaction sync migration adds private per-connection storage and an event
 table for agent consumers. The dashboard requests 365 days for new items,
@@ -178,7 +180,7 @@ and [current step status](update.md).
    Record each successful filename in deployment history. The first migration
    revokes legacy token access, the second initializes sync state and events,
    and the third creates profiles during signup, backfills missing profiles and
-   enables profile RLS. Pair the third migration with the updated signup page.
+   enables profile RLS. Pair the third migration with the updated signup page. The fourth adds the planning tables and transaction freshness fields required by the dashboard.
 4. Deploy the forecast service using the factory command above behind HTTPS.
    Configure Next.js with its URL and shared credential, then build and start
    the app with `npm ci && npm run build && npm start` from `app/`.

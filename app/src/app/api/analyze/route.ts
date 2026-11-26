@@ -6,6 +6,7 @@ import { GoogleGenAI } from '@google/genai'
 import { runEDA } from '@/lib/transactions/analysis'
 import { analysisRequest } from '@/lib/transactions/contracts'
 import { z } from 'zod'
+import { answerPlanning, planningIntent } from '@/lib/planning/questions'
 
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY
@@ -62,21 +63,18 @@ function buildPrompt(eda: ReturnType<typeof runEDA>, question: string): string {
 
 export async function POST(req: Request) {
   try {
-    if (!await verifiedUser()) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    if (!GEMINI_API_KEY) {
-      return NextResponse.json(
-        {
-          error:
-            'GEMINI_API_KEY or GOOGLE_API_KEY is not set on the server',
-        },
-        { status: 500 },
-      )
-    }
-
+    const user = await verifiedUser()
+    if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     const parsed = analysisRequest.safeParse(await req.json().catch(() => null))
     if (!parsed.success) return NextResponse.json({ error: 'Invalid analysis request' }, { status: 400 })
     const body = parsed.data
     const eda = runEDA(body.transactions, body.forecast)
+    if (planningIntent(body.question)) {
+      const { planningData } = await import('@/lib/planning/store')
+      const { plan, ctx } = await planningData(user.id)
+      return NextResponse.json({ eda, answer: answerPlanning(body.question, plan, ctx) })
+    }
+    if (!GEMINI_API_KEY) return NextResponse.json({ error: 'Analysis unavailable' }, { status: 503 })
     const prompt = buildPrompt(eda, body.question)
 
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY })

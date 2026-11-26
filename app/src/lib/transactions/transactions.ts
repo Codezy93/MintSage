@@ -67,6 +67,10 @@ export default async function getTransactions() {
     }
     const fresh = !!updated && Date.now() - Date.parse(updated) <= 48 * 3600_000
     const covered = [...oldest.values()].every(date => date <= cutoff.toISOString().slice(0, 10))
+    const stamp = await db.from('plaid_tokens').update({
+      history_checked: updated ?? null, history_ready: ready && fresh && covered,
+    }).eq('id', user.id).eq('sync_revision', data.sync_revision + 1).eq('token', data.token)
+    if (stamp.error) throw new Error('Unable to record transaction freshness')
     return { transactions, ready: ready && fresh && covered, updated }
   }
   throw new Error('Transaction history changed during sync. Refresh to retry.')

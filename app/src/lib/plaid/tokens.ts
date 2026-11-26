@@ -3,7 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { privateClient } from '../supabase/private'
 
 export async function savePlaidToken(user: User, token: string) {
-  const { error } = await privateClient().from('plaid_tokens').upsert({ id: user.id, token, sync_cursor: null, transactions: {}, sync_revision: 0 })
+  const { error } = await privateClient().from('plaid_tokens').upsert({ id: user.id, token, sync_cursor: null, transactions: {}, sync_revision: 0, history_checked: null, history_ready: false })
   if (error) {
     throw new Error('Failed to store Plaid connection')
   }

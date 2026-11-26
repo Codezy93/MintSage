@@ -232,7 +232,7 @@ export default function PlaidConnectPage() {
               </div>
 
               <p className="text-xs text-center text-muted-foreground mt-6">
-                MintSage can explain activity and suggest actions. It cannot move money or change external accounts.
+                You can also <Link className="underline" href="/planning">plan with manual balances</Link>. MintSage can explain activity and suggest actions. It cannot move money or change external accounts.
               </p>
             </>
           ) : (

@@ -13,6 +13,8 @@ checks used embedded PostgreSQL. Hosted verification and deployment remain open.
 
 Steps 11–13 are implemented. Step 14 has local verification evidence and open hosted acceptance checks.
 
+Steps 15–20 and 22–23 have local implementation and fixture coverage. The agent proposal workflow in step 17 remains assigned to step 29. Step 21 retains its superseded status. See the [planning assumptions and evaluation](docs/financial-planning.md).
+
 ## What changed in this revision
 
 - MintSage becomes an **agent-first product**: agents run workflows end to end and the
@@ -278,57 +280,57 @@ checks after each feature, rather than waiting until the entire expansion is fin
 
 ### Step 15 — Cash-flow and runway engine
 
-- [ ] Retrieve suitable account balances with timestamps; allow manual inputs for missing data.
-- [ ] Keep available cash distinct from credit limits, investment value, and total net worth.
-- [ ] Project daily balances from opening cash, expected inflows, and outflows.
-- [ ] Define runway as time until a user-selected cash floor is crossed; support both
+- [x] Retrieve suitable account balances with timestamps; allow manual inputs for missing data.
+- [x] Keep available cash distinct from credit limits, investment value, and total net worth.
+- [x] Project daily balances from opening cash, expected inflows, and outflows.
+- [x] Define runway as time until a user-selected cash floor is crossed; support both
   expected-income and no-new-income scenarios.
-- [ ] Report when the floor is not crossed within the modeled horizon, rather than
+- [x] Report when the floor is not crossed within the modeled horizon, rather than
   claiming unlimited runway. Show missing-data and uncertainty limitations.
-- [ ] Test account transfers and credit-card settlement timing without double counting.
-- [ ] Emit a threshold event when a projected balance crosses the user's cash floor.
+- [x] Test account transfers and credit-card settlement timing without double counting.
+- [x] Emit a threshold event when a projected balance crosses the user's cash floor.
 
 ### Step 16 — Bills, paydays, and subscriptions
 
-- [ ] Evaluate access to Plaid Recurring Transactions; support user-confirmed schedules
+- [x] Evaluate access to Plaid Recurring Transactions; support user-confirmed schedules
   when the add-on or adequate history is unavailable.
-- [ ] Show expected bills, income, and projected daily balances on a calendar.
-- [ ] Group recurring merchants and show monthly commitments and possible price changes.
-- [ ] Let users confirm subscriptions, timing, cancellations, and irregular income.
-- [ ] Reconcile scheduled payments with observed transactions and forecast components
+- [x] Show expected bills, income, and projected daily balances on a calendar.
+- [x] Group recurring merchants and show monthly commitments and possible price changes.
+- [x] Let users confirm subscriptions, timing, cancellations, and irregular income.
+- [x] Reconcile scheduled payments with observed transactions and forecast components
   so the same expense is not included twice.
 
 ### Step 17 — Budgets and estimated spending allowance
 
-- [ ] Add user-defined budgets using Plaid categories and subcategories.
-- [ ] Show actual spending, projected month-end totals, and early overspending alerts.
-- [ ] Estimate discretionary spending before payday after obligations, savings
+- [x] Add user-defined budgets using Plaid categories and subcategories.
+- [x] Show actual spending, projected month-end totals, and early overspending alerts.
+- [x] Estimate discretionary spending before payday after obligations, savings
   commitments, and a chosen cash buffer, using one consistent cash-flow calculation.
-- [ ] Show assumptions, source freshness, and uncertainty; avoid guarantees of affordability.
-- [ ] Budgets proposed by agents are created only after user approval (step 29).
+- [x] Show assumptions, source freshness, and uncertainty; avoid guarantees of affordability.
+- [ ] Agent-proposed budgets require the step 29 approval workflow. Today only a verified user can save a budget, and planning tools are read-only.
 
 ### Step 18 — What-if scenarios and forecast risk
 
-- [ ] Support hypothetical purchases, income delays, rent changes, and spending reductions.
-- [ ] Recompute projected balances, lowest balance, budget outcomes, and runway.
-- [ ] Add prediction intervals and evaluate empirical coverage and calibration.
-- [ ] Estimate budget-exceedance and cash-floor-crossing probabilities only when the
+- [x] Support hypothetical purchases, income delays, rent changes, and spending reductions.
+- [x] Recompute projected balances, lowest balance, budget outcomes, and runway.
+- [x] Add prediction intervals and evaluate empirical coverage and calibration.
+- [x] Estimate budget-exceedance and cash-floor-crossing probabilities only when the
   underlying uncertainty method has been evaluated; explain synthetic-data limitations.
-- [ ] Keep scenario edits separate from actual financial records.
+- [x] Keep scenario edits separate from actual financial records.
 
 ### Step 19 — Savings goals
 
-- [ ] Add goals with target amounts, dates, starting funds, and planned contributions.
-- [ ] Estimate progress and completion dates under explicit scenarios.
-- [ ] Integrate contributions into the cash-flow engine without treating transfers
+- [x] Add goals with target amounts, dates, starting funds, and planned contributions.
+- [x] Estimate progress and completion dates under explicit scenarios.
+- [x] Integrate contributions into the cash-flow engine without treating transfers
   between owned accounts as new spending or new wealth.
 
 ### Step 20 — Unusual spending and change alerts
 
-- [ ] Flag unusual amounts, possible duplicates, and recurring billing changes for review.
-- [ ] Explain the evidence behind each flag; do not label an anomaly as confirmed fraud.
-- [ ] Add dismiss/confirm controls and notification preferences to limit repeated noise.
-- [ ] Route flags to the anomaly-investigator agent (step 27) instead of surfacing them directly.
+- [x] Flag unusual amounts, possible duplicates, and recurring billing changes for review.
+- [x] Explain the evidence behind each flag; do not label an anomaly as confirmed fraud.
+- [x] Add dismiss/confirm controls and notification preferences to limit repeated noise.
+- [x] Route flags to the anomaly-investigator agent (step 27) instead of surfacing them directly.
 
 ### Step 21 — Extend the grounded LLM assistant
 
@@ -344,16 +346,16 @@ agent system and must still be met.
 
 ### Step 22 — Debt dashboard (later)
 
-- [ ] Evaluate Plaid Liabilities access and supported accounts; support manual entries.
-- [ ] Track balances, rates, payment dates, and minimum payments where available.
-- [ ] Compare repayment scenarios with explicit rate, fee, and payment assumptions.
-- [ ] Incorporate debt payments into cash-flow projections consistently.
+- [x] Evaluate Plaid Liabilities access and supported accounts; support manual entries.
+- [x] Track balances, rates, payment dates, and minimum payments where available.
+- [x] Compare repayment scenarios with explicit rate, fee, and payment assumptions.
+- [x] Incorporate debt payments into cash-flow projections consistently.
 
 ### Step 23 — Net-worth history (later)
 
-- [ ] Track supported asset and liability balances, including user-entered items.
-- [ ] Show historical snapshots, missing accounts, valuation dates, and currency assumptions.
-- [ ] Keep liquid runway separate from net worth.
+- [x] Track supported asset and liability balances, including user-entered items.
+- [x] Show historical snapshots, missing accounts, valuation dates, and currency assumptions.
+- [x] Keep liquid runway separate from net worth.
 
 ## Agent system (steps 24–34)
 

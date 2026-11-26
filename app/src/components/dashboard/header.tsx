@@ -36,6 +36,7 @@ export function DashboardHeader() {
 
         <div className="flex items-center gap-4">
 
+          <Link href="/planning" className="text-sm underline">Financial plan</Link>
           {error && <span role="alert">Sign out failed. Try again.</span>}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
