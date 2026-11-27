@@ -13,7 +13,7 @@ checks used embedded PostgreSQL. Hosted verification and deployment remain open.
 
 Steps 11–13 are implemented. Step 14 has local verification evidence and open hosted acceptance checks.
 
-Steps 15–20 and 22–23 have local implementation and fixture coverage. The agent proposal workflow in step 17 remains assigned to step 29. Step 21 retains its superseded status. See the [planning assumptions and evaluation](docs/financial-planning.md).
+Steps 15–20 and 22–23 have local implementation and fixture coverage. Steps 17 and 29 now have local approval and recovery coverage. Step 21 retains its superseded status. See the [planning assumptions and evaluation](docs/financial-planning.md).
 
 ## What changed in this revision
 
@@ -307,7 +307,7 @@ checks after each feature, rather than waiting until the entire expansion is fin
 - [x] Estimate discretionary spending before payday after obligations, savings
   commitments, and a chosen cash buffer, using one consistent cash-flow calculation.
 - [x] Show assumptions, source freshness, and uncertainty; avoid guarantees of affordability.
-- [ ] Agent-proposed budgets require the step 29 approval workflow. Today only a verified user can save a budget, and planning tools are read-only.
+- [x] Agent-proposed budgets require a verified inbox approval before the worker applies them.
 
 ### Step 18 — What-if scenarios and forecast risk
 
@@ -389,69 +389,71 @@ steps have passed their acceptance checks.
 Hard boundary: no money movement, payments, cancellations with providers, or changes to
 external accounts at any level. Agent "actions" only change MintSage's own records.
 
+Steps 24–30 have local workflow and PostgreSQL integration coverage. Step 28 still needs live Plaid Sandbox delivery verification. See the [agent service setup and acceptance guide](docs/agent-workflows.md).
+
 ### Step 24 — Agent tool layer
 
-- [ ] Wrap each engine (forecast, runway, recurring, budgets, scenarios, flags, history
+- [x] Wrap each engine (forecast, runway, recurring, budgets, scenarios, flags, history
   queries) as a typed tool with Pydantic input/output schemas.
-- [ ] Inject `user_id` from the verified session into every tool; never accept it as an
+- [x] Inject `user_id` from the verified session into every tool; never accept it as an
   LLM-generated argument.
-- [ ] Return every figure with a ledger ID, source records, and assumptions.
-- [ ] Give each agent least-privilege access: read-only tools by default; write tools only
+- [x] Return every figure with a ledger ID, source records, and assumptions.
+- [x] Give each agent least-privilege access: read-only tools by default; write tools only
   for agents that propose L2 actions.
-- [ ] Unit-test every tool independently of the LLM.
+- [x] Unit-test every tool independently of the LLM.
 
 ### Step 25 — Graph core and state
 
-- [ ] Define the graph state: trigger, user context, messages, tool-result ledger, draft,
+- [x] Define the graph state: trigger, user context, messages, tool-result ledger, draft,
   verification result, pending actions, and autonomy level.
-- [ ] Persist state with the LangGraph Postgres checkpointer on the existing Supabase
+- [x] Persist state with the LangGraph Postgres checkpointer on the existing Supabase
   Postgres instance; do not use the SQLite checkpointer in deployment.
-- [ ] Apply node timeouts and a maximum step count per run.
-- [ ] Verify that a run killed mid-way resumes correctly from its checkpoint.
+- [x] Apply node timeouts and a maximum step count per run.
+- [x] Verify that a run killed mid-way resumes correctly from its checkpoint.
 
 ### Step 26 — Verifier and self-correction loop
 
-- [ ] Extract every number from a draft and match it against the run's tool ledger,
+- [x] Extract every number from a draft and match it against the run's tool ledger,
   with explicit rules for rounding, currency formatting, and dates.
-- [ ] On failure, route back to the writer with the unmatched figures; after a fixed
+- [x] On failure, route back to the writer with the unmatched figures; after a fixed
   retry limit, return a refusal instead of an unverified answer.
-- [ ] Label each statement as observed fact, forecast, or user hypothetical.
-- [ ] Unit-test the verifier against seeded drafts containing invented numbers.
+- [x] Label each statement as observed fact, forecast, or user hypothetical.
+- [x] Unit-test the verifier against seeded drafts containing invented numbers.
 
 ### Step 27 — Supervisor and specialist agents
 
-- [ ] Implement the supervisor and the cash-flow analyst first, then the recurring-charges
+- [x] Implement the supervisor and the cash-flow analyst first, then the recurring-charges
   agent, anomaly investigator, and scenario planner as LangGraph subgraphs.
-- [ ] Each specialist runs a tool loop (reason → call tool → observe → decide).
-- [ ] Add the data-reconciliation agent after step 4 marks ambiguous transactions.
-- [ ] Measure whether multiple specialists outperform a single agent with all tools on
+- [x] Each specialist runs a tool loop (reason → call tool → observe → decide).
+- [x] Add the data-reconciliation agent after step 4 marks ambiguous transactions.
+- [x] Measure whether multiple specialists outperform a single agent with all tools on
   the evaluation suite; keep the simpler design if they do not.
 
 ### Step 28 — Proactive triggers and agent inbox
 
-- [ ] Start agent runs from sync events (step 4), cash-floor threshold events (step 15),
+- [x] Start agent runs from sync events (step 4), cash-floor threshold events (step 15),
   step 20 flags, and a weekly schedule.
 - [ ] Use Plaid Sandbox to simulate transaction webhooks during development; confirm the
   current sandbox webhook behavior during implementation.
-- [ ] Build the agent inbox UI: findings, proposals, approval requests, and dismiss/confirm controls.
-- [ ] Deduplicate findings so repeated syncs do not produce repeated alerts.
+- [x] Build the agent inbox UI: findings, proposals, approval requests, and dismiss/confirm controls.
+- [x] Deduplicate findings so repeated syncs do not produce repeated alerts.
 
 ### Step 29 — Human-in-the-loop approvals and autonomy policy
 
-- [ ] Pause runs with `interrupt()` before any L2 action and resume on the user's decision.
-- [ ] Wire approval requests between the inbox (Next.js) and the agent service.
-- [ ] Add user-configurable L3 policies, all off by default; log and allow reversal of every
+- [x] Pause runs with `interrupt()` before any L2 action and resume on the user's decision.
+- [x] Wire approval requests between the inbox (Next.js) and the agent service.
+- [x] Add user-configurable L3 policies, all off by default; log and allow reversal of every
   automatic action.
-- [ ] Test that no write tool executes without an approval or an enabled policy.
+- [x] Test that no write tool executes without an approval or an enabled policy.
 
 ### Step 30 — Agent memory
 
-- [ ] Store user-confirmed facts (for example, "this recurring payment is a rent split")
+- [x] Store user-confirmed facts (for example, "this recurring payment is a rent split")
   in the LangGraph store, scoped per user.
-- [ ] Record past findings and the user's decisions as episodic memory; use them to
+- [x] Record past findings and the user's decisions as episodic memory; use them to
   suppress alerts the user repeatedly dismisses.
-- [ ] Let users view and delete stored agent memory.
-- [ ] Never store Plaid tokens, account numbers, or raw credentials in agent memory.
+- [x] Let users view and delete stored agent memory.
+- [x] Never store Plaid tokens, account numbers, or raw credentials in agent memory.
 
 ### Step 31 — Onboarding and weekly-briefing agents
 

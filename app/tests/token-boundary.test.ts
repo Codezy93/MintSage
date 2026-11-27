@@ -10,11 +10,11 @@ vi.mock('@/lib/plaid/tokens', () => ({ savePlaidToken: fixture.save }))
 
 it('uses the verified owner and returns only connection status to the browser', async () => {
   fixture.getUser.mockResolvedValue({ data: { user: { id: 'alice' } } })
-  fixture.exchange.mockResolvedValue({ data: { access_token: 'fixture-private' } })
+  fixture.exchange.mockResolvedValue({ data: { access_token: 'fixture-private',item_id:'fixture-item' } })
   const response = await POST(new Request('https://example.invalid', {
     method: 'POST', body: JSON.stringify({ public_token: 'fixture-public', user_id: 'bob' }),
   }))
   expect(response.status).toBe(200)
   expect(await response.json()).toEqual({ connected: true })
-  expect(fixture.save).toHaveBeenCalledWith({ id: 'alice' }, 'fixture-private')
+  expect(fixture.save).toHaveBeenCalledWith({ id: 'alice' }, 'fixture-private','fixture-item')
 })

@@ -25,6 +25,13 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: fixture
   python:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: fixture
+        ports: ['5432/tcp']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,3 +42,5 @@ jobs:
       - run: ruff check forecasting agent_service
       - run: mypy forecasting agent_service
       - run: python -m pytest -q forecasting/tests agent_service/tests
+        env:
+          AGENT_TEST_POSTGRES: postgresql://postgres:fixture@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/postgres

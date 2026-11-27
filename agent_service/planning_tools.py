@@ -9,7 +9,19 @@ import httpx
 from langchain_core.tools import tool
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
-View = Literal["runway", "recurring", "budgets", "goals", "spending", "scenario"]
+from forecasting.contract import History
+
+View = Literal[
+    "runway",
+    "recurring",
+    "budgets",
+    "goals",
+    "spending",
+    "scenario",
+    "flags",
+    "history",
+    "forecast_history",
+]
 
 
 class PlanningScenario(BaseModel):
@@ -70,6 +82,20 @@ class SpendingChange(BaseModel):
     change: float
 
 
+class Flag(BaseModel):
+    id: str
+    kind: Literal["duplicate", "price", "unusual"]
+    amount: float
+    date: CalendarDate
+    group: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class Ambiguous(BaseModel):
+    id: str
+    amount: float
+    date: CalendarDate
+
+
 class PlanningEvidence(BaseModel):
     ledger_id: UUID
     view: View
@@ -84,6 +110,9 @@ class PlanningEvidence(BaseModel):
         | list[Commitment]
         | list[Goal]
         | list[SpendingChange]
+        | list[Flag]
+        | list[Ambiguous]
+        | History
     )
 
     @model_validator(mode="after")
@@ -95,12 +124,15 @@ class PlanningEvidence(BaseModel):
             "recurring": TypeAdapter(list[Commitment]),
             "goals": TypeAdapter(list[Goal]),
             "spending": TypeAdapter(list[SpendingChange]),
+            "flags": TypeAdapter(list[Flag]),
+            "history": TypeAdapter(list[Ambiguous]),
+            "forecast_history": TypeAdapter(History),
         }
         contracts[self.view].validate_python(self.data)
         return self
 
 
-def planning_reader(endpoint: str, secret: str):
+def planning_reader(endpoint: str, secret: str, event: str | None = None):
     url = httpx.URL(endpoint)
     if not secret or url.scheme != "https":
         raise ValueError("Configure an HTTPS planning endpoint and service secret")
@@ -109,6 +141,8 @@ def planning_reader(endpoint: str, secret: str):
         user: UUID, view: View, scenario: PlanningScenario | None
     ) -> PlanningEvidence:
         body: dict[str, object] = {"view": view}
+        if event and view == "flags":
+            body["event"] = event
         if scenario is not None:
             body["scenario"] = scenario.model_dump(mode="json", exclude_none=True)
         response = httpx.post(
@@ -135,7 +169,9 @@ def planning_tools(
 ):
     @tool
     def inspect_finances(
-        view: Literal["runway", "recurring", "budgets", "goals", "spending"],
+        view: Literal[
+            "runway", "recurring", "budgets", "goals", "spending", "flags", "history"
+        ],
     ) -> PlanningEvidence:
         """Read the verified user's calculated finance evidence for one topic."""
         return read(user, view, None)

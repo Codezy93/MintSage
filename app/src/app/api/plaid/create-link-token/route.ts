@@ -36,6 +36,7 @@ export async function POST() {
                 country_codes: [CountryCode.Us],
                 products: parseProducts(),
                 transactions: { days_requested: 365 },
+                webhook: process.env.PLAID_WEBHOOK_URL || undefined,
                 redirect_uri: process.env.PLAID_REDIRECT_URI || undefined,
             })
             .then((res) => res.data);

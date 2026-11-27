@@ -1,6 +1,12 @@
 import { timingSafeEqual, createHash, randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { spendingChange } from '@/lib/planning/observations'
+import { buildLast60Days } from '@/lib/transactions/aggregation'
+import { countsAsSpending } from '@/types/transactions'
+import {
+  anomalyCandidates,
+  merchantKey,
+  spendingChange,
+} from '@/lib/planning/observations'
 import { planningData } from '@/lib/planning/store'
 import { scenarioSchema } from '@/lib/planning/types'
 
@@ -13,8 +19,12 @@ const input = z
       'goals',
       'scenario',
       'spending',
+      'flags',
+      'history',
+      'forecast_history',
     ]),
     scenario: scenarioSchema.optional(),
+    event: z.string().max(300).optional(),
   })
   .strict()
 const digest = (v: string) => createHash('sha256').update(v).digest()
@@ -45,6 +55,77 @@ export async function POST(req: Request) {
       owner.data,
       body.data.view === 'scenario' ? body.data.scenario : undefined
     )
+    const rows = ctx.transactions.filter(
+      (t) => !t.pending && t.currency === 'USD' && t.date <= ctx.today
+    )
+    const evidence = (
+      data: unknown,
+      sources: string[],
+      assumptions: string[]
+    ) =>
+      Response.json({
+        ledger_id: randomUUID(),
+        view: body.data.view,
+        as_of: r.asOf,
+        currency: 'USD',
+        sources,
+        assumptions,
+        data,
+      })
+    if (body.data.view === 'forecast_history') {
+      if (!r.historyReady)
+        return Response.json({ error: 'History incomplete' }, { status: 422 })
+      const series = buildLast60Days(rows, new Date(ctx.today + 'T00:00:00Z'))
+      return evidence(
+        { ...series, currency: 'USD' },
+        rows
+          .filter((t) => countsAsSpending(t) && t.date >= series.user_dates[0])
+          .map((t) => t.id),
+        ['Posted USD purchases and refunds over the observed window.']
+      )
+    }
+    if (body.data.view === 'history') {
+      const selected = rows
+        .filter((t) => t.needsReview)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 50)
+      return evidence(
+        selected.map((t) => ({ id: t.id, date: t.date, amount: t.amount })),
+        selected.map((t) => t.id),
+        [
+          'Up to fifty recent ambiguous posted USD records. Classification requires user confirmation.',
+        ]
+      )
+    }
+    if (body.data.view === 'flags') {
+      const byId = new Map(rows.map((t) => [t.id, t]))
+      const flags = plan.alerts
+        ? anomalyCandidates(rows, new Set(r.matched))
+            .filter((f) => !body.data.event || f.key === body.data.event)
+            .slice(-50)
+        : []
+      return evidence(
+        flags.map((f) => {
+          const tx = byId.get(f.sources[f.sources.length - 1])!
+          return {
+            id: f.key,
+            kind: f.kind,
+            amount: tx.amount,
+            date: tx.date,
+            group: digest(
+              JSON.stringify([
+                owner.data,
+                tx.accountId,
+                merchantKey(tx),
+                f.kind,
+              ])
+            ).toString('hex'),
+          }
+        }),
+        [...new Set(flags.flatMap((f) => f.sources))],
+        ['Rule-based signals require review.']
+      )
+    }
     const spending = spendingChange(ctx.transactions, ctx.today)
     const budgets = r.budgets.map(
       ({ id, category, detail, actual, projected, limit, risk }) => ({

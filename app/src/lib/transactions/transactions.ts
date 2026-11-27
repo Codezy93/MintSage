@@ -9,12 +9,19 @@ import type { TransactionRecord } from '@/types/transactions'
 export default async function getTransactions() {
   const user = await verifiedUser()
   if (!user) redirect('/login')
+  const result=await syncOwner(user.id)
+  if(!result) redirect('/plaid-connect')
+  return result
+}
+
+// Dashboard calls bind a session owner. Webhook calls also require the signed Item ID.
+export async function syncOwner(owner:string, itemId?:string) {
   const db = privateClient()
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data, error } = await db.from('plaid_tokens')
-      .select('token,sync_cursor,sync_revision,transactions').eq('id', user.id).maybeSingle()
+      .select('token,item_id,sync_cursor,sync_revision,transactions').eq('id', owner).maybeSingle()
     if (error) throw new Error('Unable to read transaction history')
-    if (!data?.token) redirect('/plaid-connect')
+    if (!data?.token || (itemId && data.item_id!==itemId)) return null
     const changes = new Map<string, TransactionRecord>()
     const removed = new Set<string>()
     const replacedPending = new Set<string>()
@@ -48,7 +55,7 @@ export default async function getTransactions() {
     }
     for (const id of replacedPending) remove(id)
     const { data: committed, error: writeError } = await db.rpc('commit_transaction_sync', {
-      owner_id: user.id, expected_token: data.token, revision: data.sync_revision,
+      owner_id: owner, expected_token: data.token, revision: data.sync_revision,
       next_cursor: cursor || null, changes: Object.fromEntries(changes), removed: [...removed],
     })
     if (writeError) throw new Error('Unable to persist transaction sync')
@@ -68,9 +75,14 @@ export default async function getTransactions() {
     const fresh = !!updated && Date.now() - Date.parse(updated) <= 48 * 3600_000
     const covered = [...oldest.values()].every(date => date <= cutoff.toISOString().slice(0, 10))
     const stamp = await db.from('plaid_tokens').update({
+      ...(status.data.item?.item_id ? {item_id:status.data.item.item_id}:{}),
       history_checked: updated ?? null, history_ready: ready && fresh && covered,
-    }).eq('id', user.id).eq('sync_revision', data.sync_revision + 1).eq('token', data.token)
+    }).eq('id', owner).eq('sync_revision', data.sync_revision + 1).eq('token', data.token)
     if (stamp.error) throw new Error('Unable to record transaction freshness')
+    if (process.env.AGENT_SERVICE_URL) {
+      const {planningData,recordBaseline}=await import('@/lib/planning/store')
+      await recordBaseline(owner,await planningData(owner))
+    }
     return { transactions, ready: ready && fresh && covered, updated }
   }
   throw new Error('Transaction history changed during sync. Refresh to retry.')

@@ -6,7 +6,7 @@
 | Forecast tool | A trusted caller binds a verified user UUID and a history loader before giving the tool to a model. It takes no model-generated arguments. | Returns the deterministic forecast, ledger ID, source references and assumption. Its own computation makes no Gemini call. |
 | Planning tools and chat | The trusted caller binds the verified owner. The planner computes spending, budgets, runway, goals, subscriptions and hypothetical outcomes. | The two supported spending-change and pre-payday purchase questions return calculated evidence directly. Tool calls are read-only. |
 | Anomaly investigator | On requested review, Gemini receives candidate indices, flag types, dates and amounts. | Selects candidates for human review. The planner displays the underlying computed evidence. |
-| Planned specialist graph | Sync events, schedules, thresholds and chat are planned triggers. | Supervisor, verifier, approvals, checkpoint recovery and proactive inbox delivery are roadmap items. |
+| Agent inbox | Sync, weekly, threshold and user-requested reviews. Gemini selects from evidence-linked claims. | Verified findings, approved budgets, reversible duplicate dismissal and user-scoped memory. See the [workflow guide](agent-workflows.md). |
 
 The HTTP service checks a shared credential and user UUID. The history loader
 must scope database reads to that user. Raw tokens and bank accounts have no

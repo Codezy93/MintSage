@@ -24,8 +24,8 @@ export async function POST(request: Request) {
             .itemPublicTokenExchange({ public_token: parsed.data.public_token })
             .then((res) => res.data);
 
-        const exchanged = z.object({ access_token: z.string().min(1) }).parse(exchangeResponse);
-        await savePlaidToken(user, exchanged.access_token);
+        const exchanged = z.object({ access_token: z.string().min(1),item_id:z.string().min(1) }).parse(exchangeResponse);
+        await savePlaidToken(user, exchanged.access_token, exchanged.item_id);
         return NextResponse.json({ connected: true });
     } catch {
         console.error('Failed to complete Plaid token exchange or storage');
